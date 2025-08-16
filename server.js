@@ -442,34 +442,39 @@ class AuthenticationManager {
         }
 
         try {
-            // Check if admin already exists
-            const existingAdmin = await this.db.collection('users').findOne({ 
-                email: this.adminEmail,
-                role: 'admin'
+            // Check if ANY user with this email exists (regardless of role)
+            const existingUser = await this.db.collection('users').findOne({ 
+                email: this.adminEmail
             });
 
-            if (existingAdmin) {
-                console.log('Admin user already exists - updating password if needed');
+            if (existingUser) {
+                console.log('User with admin email already exists - updating to admin role and password');
                 
-                // Update existing admin user with new hashed password
+                // Update existing user to be admin with new password
                 const hashedPassword = await bcrypt.hash(this.adminPasswordPlain, 12);
                 
-                await this.db.collection('users').updateOne(
-                    { email: this.adminEmail, role: 'admin' },
+                const updateResult = await this.db.collection('users').updateOne(
+                    { email: this.adminEmail },
                     { 
                         $set: { 
                             password: hashedPassword,
+                            role: 'admin',
+                            plan: 'enterprise',
+                            videosUsed: 0,
+                            videosLimit: 999999,
                             isActive: true,
-                            updatedAt: new Date()
+                            updatedAt: new Date(),
+                            compliance: 'terms_compliant'
                         }
                     }
                 );
                 
-                console.log('Admin user password updated successfully');
-                return existingAdmin;
+                console.log('Existing user updated to admin successfully:', updateResult.modifiedCount, 'documents modified');
+                return existingUser;
             }
 
-            // Create new admin user only if doesn't exist
+            // Only create new user if email doesn't exist at all
+            console.log('No user found with admin email, creating new admin user');
             const hashedPassword = await bcrypt.hash(this.adminPasswordPlain, 12);
             
             const adminUser = {
@@ -485,13 +490,18 @@ class AuthenticationManager {
             };
 
             const result = await this.db.collection('users').insertOne(adminUser);
-            console.log('Admin user created successfully with ID:', result.insertedId);
+            console.log('New admin user created successfully with ID:', result.insertedId);
             
             return { ...adminUser, _id: result.insertedId };
             
         } catch (error) {
+            // If it's still a duplicate key error, just log and continue
+            if (error.code === 11000) {
+                console.log('Admin user already exists (duplicate key), continuing with authentication...');
+                return null;
+            }
+            
             console.error('Failed to initialize admin user:', error);
-            // Don't throw error - continue with fallback authentication
             return null;
         }
     }
