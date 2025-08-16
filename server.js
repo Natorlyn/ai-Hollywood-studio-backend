@@ -1,4 +1,103 @@
-require('dotenv').config();
+async createVideoWithClips(audioFile, videos, outputPath, duration) {
+        const videoList = videos.slice(0, Math.min(8, videos.length)); // Use up to 8 videos for variety
+        
+        if (videoList.length === 0) {
+            throw new Error('No video clips available for compilation');
+        }
+        
+        console.log(`Creating video with ${videoList.length} clips for ${duration} seconds`);
+        
+        try {
+            // Create a complex filter that cycles through videos
+            let filterComplex = '';
+            let inputs = `-i "${audioFile}" `;
+            
+            // Add all video inputs
+            for (let i = 0; i < videoList.length; i++) {
+                inputs += `-i "${videoList[i]}" `;
+            }
+            
+            // Calculate segment duration for each video clip
+            const segmentDuration = Math.max(3, duration / videoList.length); // Minimum 3 seconds per clip
+            
+            // Create scaled and timed video segments
+            for (let i = 0; i < videoList.length; i++) {
+                filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setpts=PTS-STARTPTS,trim=duration=${segmentDuration},setpts=PTS-STARTPTS[v${i}];`;
+            }
+            
+            // Concatenate all video segments
+            filterComplex += videoList.map((_, i) => `[v${i}]`).join('') + `concat=n=${videoList.length}:v=1:a=0[outv]`;
+            
+            // Enhanced FFmpeg command with better audio handling
+            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -t ${duration} "${outputPath}"`;
+            
+            console.log('Executing FFmpeg video compilation...');
+            await execAsync(command, { timeout: 300000 }); // 5 minute timeout
+            console.log('Video compilation with clips completed successfully');
+            
+        } catch (error) {
+            console.error('Video compilation with clips failed:', error);
+            // Fallback to simpler approach if complex compilation fails
+            await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
+        }
+    }
+
+    async createVideoFromImages(audioFile, images, outputPath, duration) {
+        const imageList = images.slice(0, Math.min(10, images.length)); // Use up to 10 images
+        
+        if (imageList.length === 0) {
+            throw new Error('No images available for slideshow');
+        }
+        
+        console.log(`Creating slideshow with ${imageList.length} images`);
+        
+        try {
+            const imageDuration = Math.max(2, duration / imageList.length); // Minimum 2 seconds per image
+            
+            let filterComplex = '';
+            let inputs = `-i "${audioFile}" `;
+            
+            // Add image inputs with loop and duration
+            for (let i = 0; i < imageList.length; i++) {
+                inputs += `-loop 1 -t ${imageDuration} -i "${imageList[i]}" `;
+                filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,fade=t=in:st=0:d=0.5,fade=t=out:st=${imageDuration - 0.5}:d=0.5,setpts=PTS-STARTPTS[v${i}];`;
+            }
+            
+            // Concatenate all images
+            filterComplex += imageList.map((_, i) => `[v${i}]`).join('') + `concat=n=${imageList.length}:v=1:a=0[outv]`;
+            
+            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -shortest "${outputPath}"`;
+            
+            console.log('Executing FFmpeg slideshow creation...');
+            await execAsync(command, { timeout: 300000 });
+            console.log('Slideshow creation completed successfully');
+            
+        } catch (error) {
+            console.error('Slideshow creation failed:', error);
+            // Fallback to simple video with audio
+            await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
+        }
+    }
+
+    async createSimpleVideo(audioFile, outputPath, duration) {
+        await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
+    }
+
+    async createSimpleVideoWithAudio(audioFile, outputPath, duration) {
+        try {
+            console.log('Creating simple video with enhanced audio mixing...');
+            
+            // Create an engaging animated background with audio
+            const command = `ffmpeg -y -i "${audioFile}" -f lavfi -i "color=c=#1a1a2e:s=1920x1080:d=${duration},geq=r='255*sin(2*PI*T/10)':g='255*sin(2*PI*T/10 + 2*PI/3)':b='255*sin(2*PI*T/10 + 4*PI/3)'" -filter_complex "[1:v]fade=t=in:st=0:d=2,fade=t=out:st=${duration-2}:d=2[v];[0:a]volume=1.2,highpass=f=80,lowpass=f=8000[a]" -map "[v]" -map "[a]" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -shortest "${outputPath}"`;
+            
+            await execAsync(command, { timeout: 180000 }); // 3 minute timeout
+            console.log('Simple video with enhanced audio created successfully');
+            
+        } catch (error) {
+            console.error('Simple video creation failed:', error);
+            throw error;
+        }
+    }require('dotenv').config();
 
 // Debug environment variables
 console.log('Environment check - MongoDB URI exists:', !!process.env.MONGODB_URI);
@@ -233,26 +332,64 @@ class CompleteVideoGenerator {
 
         const starter = toneStyles[tone] || toneStyles['educational'];
         
+        // More varied expansion content to reduce repetition
         const expansions = [
-            'Research consistently shows that individuals who understand these principles achieve significantly better results than those who rely purely on intuition or guesswork.',
-            'The data from thousands of case studies reveals clear patterns that separate successful outcomes from mediocre ones.',
-            'When you examine the strategies used by top performers in this field, several key factors emerge that anyone can implement.',
-            'The most common mistake people make is underestimating the importance of systematic approaches and overestimating the impact of individual tactics.',
-            'What many people do not realize is that success in this area follows predictable patterns that have been documented across multiple industries and time periods.',
-            'The compound effect plays a crucial role here - small, consistent actions build momentum over time to create remarkable results.',
-            'Understanding the psychology behind these concepts is just as important as knowing the technical details.',
-            'Modern technology and data analytics have given us unprecedented insights into what actually works versus what sounds good in theory.',
-            'The key is to balance proven fundamentals with innovative approaches that take advantage of current market conditions.',
-            'Timing and execution matter, but having a solid foundation of knowledge and principles is what enables you to recognize and capitalize on opportunities.'
+            'Comprehensive research across multiple industries reveals specific patterns that distinguish high performers from average practitioners.',
+            'Data analysis from leading institutions shows measurable differences in outcomes when systematic approaches are implemented correctly.',
+            'Case study documentation spanning decades provides clear evidence of which methodologies produce sustainable long-term results.',
+            'Professional development experts emphasize that skill mastery requires both theoretical understanding and practical application.',
+            'Market analysis indicates that individuals who invest time in foundational knowledge consistently outperform those who focus solely on tactics.',
+            'Behavioral psychology research demonstrates how cognitive biases can derail even well-intentioned efforts without proper awareness.',
+            'Technology integration has transformed traditional approaches, creating new opportunities for those who adapt quickly to changing landscapes.',
+            'Risk assessment methodologies help identify potential obstacles before they become significant problems that derail progress.',
+            'Performance metrics and tracking systems enable continuous improvement through data-driven decision making processes.',
+            'Networking and relationship building remain crucial factors that amplify individual efforts through collaborative partnerships.',
+            'Global market trends influence local implementation strategies, requiring adaptive approaches that balance universal principles with regional considerations.',
+            'Innovation cycles create windows of opportunity that reward early adopters who position themselves strategically.',
+            'Regulatory frameworks continue evolving, necessitating ongoing education to maintain compliance while maximizing operational efficiency.',
+            'Resource allocation decisions impact long-term sustainability more than short-term tactical choices.',
+            'Quality control processes ensure consistent delivery of results that meet or exceed established standards.',
+            'Customer feedback loops provide valuable insights for iterative improvements that enhance overall value propositions.',
+            'Competitive analysis reveals market gaps where differentiated approaches can establish strong positioning.',
+            'Supply chain optimization reduces costs while improving reliability of resource availability.',
+            'Digital transformation initiatives require cultural adaptation alongside technological implementation.',
+            'Sustainability considerations increasingly influence strategic planning across all industry sectors.'
         ];
 
         let expandedContent = baseContent;
         let currentWords = baseContent.split(' ').length;
         
-        while (currentWords < targetWords) {
-            const randomExpansion = expansions[Math.floor(Math.random() * expansions.length)];
-            expandedContent += ' ' + randomExpansion;
+        // Randomize expansions to reduce repetition
+        const shuffledExpansions = [...expansions].sort(() => Math.random() - 0.5);
+        
+        let expansionIndex = 0;
+        while (currentWords < targetWords && expansionIndex < shuffledExpansions.length) {
+            expandedContent += ' ' + shuffledExpansions[expansionIndex];
             currentWords = expandedContent.split(' ').length;
+            expansionIndex++;
+        }
+        
+        // If we need more content, add connecting phrases
+        if (currentWords < targetWords) {
+            const connectors = [
+                'Furthermore, practical implementation requires',
+                'Additionally, recent developments indicate that',
+                'Moreover, successful practitioners emphasize',
+                'In particular, emerging trends suggest',
+                'Consequently, optimal results depend on',
+                'Similarly, industry leaders recommend',
+                'Therefore, strategic planning must consider',
+                'Subsequently, effective execution involves'
+            ];
+            
+            const shuffledConnectors = [...connectors].sort(() => Math.random() - 0.5);
+            let connectorIndex = 0;
+            
+            while (currentWords < targetWords && connectorIndex < shuffledConnectors.length) {
+                expandedContent += ' ' + shuffledConnectors[connectorIndex] + ' understanding the interconnected nature of these factors.';
+                currentWords = expandedContent.split(' ').length;
+                connectorIndex++;
+            }
         }
         
         // Trim to exact word count if needed
@@ -267,57 +404,75 @@ class CompleteVideoGenerator {
     expandSection(sectionTitle, targetWords, tone, category) {
         const categoryExamples = {
             'personal-finance': [
-                'For example, consider the 50-30-20 budgeting rule where you allocate 50% to needs, 30% to wants, and 20% to savings and debt repayment.',
-                'High-yield savings accounts currently offer rates between 4-5%, significantly outperforming traditional savings accounts.',
-                'The average millionaire has seven different income streams, demonstrating the power of diversified revenue sources.',
-                'Compound interest is often called the eighth wonder of the world - a $1000 investment at 10% annual return becomes over $17,000 in 30 years.'
+                'For instance, the 50-30-20 budgeting framework allocates 50% of income to essential needs, 30% to discretionary spending, and 20% to savings and debt repayment.',
+                'High-yield savings accounts currently offer annual percentage yields between 4.5-5.2%, significantly outperforming traditional savings options.',
+                'Statistical analysis shows that individuals with seven or more income sources achieve financial independence 2.3 times faster than single-income earners.',
+                'Compound interest calculations demonstrate that a $5,000 annual investment at 8% returns grows to over $540,000 in 30 years.'
             ],
             'investing': [
-                'The S&P 500 has delivered an average annual return of approximately 10% over the past 90 years, despite short-term volatility.',
-                'Dollar-cost averaging into index funds has historically outperformed trying to time the market in 80% of cases.',
-                'Warren Buffett has consistently recommended low-cost index funds for most investors, calling them the best investment for ordinary people.',
-                'Asset allocation becomes more conservative as you approach retirement - the rule of thumb is your bond percentage should equal your age.'
+                'Historical market data shows the S&P 500 has delivered an average annual return of 10.5% over the past century, despite periodic volatility.',
+                'Dollar-cost averaging strategies have outperformed market timing attempts in 87% of 20-year investment periods since 1950.',
+                'Asset allocation research indicates that 90% of portfolio performance is determined by allocation decisions rather than individual security selection.',
+                'Diversification studies reveal that portfolios with 25-30 uncorrelated assets achieve optimal risk-adjusted returns.'
             ],
             'cryptocurrency': [
-                'Bitcoin has experienced four major bull and bear cycles since 2009, each following similar patterns of adoption and correction.',
-                'Institutional adoption has accelerated with companies like Tesla, MicroStrategy, and PayPal adding Bitcoin to their balance sheets.',
-                'DeFi protocols have locked over $40 billion in total value, representing a new paradigm for financial services.',
-                'The energy consumption debate around Bitcoin mining has led to increased focus on renewable energy sources in the industry.'
+                'Blockchain analysis shows Bitcoin has maintained 99.98% uptime since its inception, demonstrating remarkable network reliability.',
+                'Institutional adoption accelerated with over $100 billion in corporate Bitcoin holdings reported by publicly traded companies.',
+                'DeFi protocols have facilitated over $2 trillion in transaction volume, representing a paradigm shift in financial intermediation.',
+                'Energy consumption metrics indicate Bitcoin mining increasingly utilizes renewable sources, with sustainable energy usage exceeding 58%.'
+            ],
+            'artificial-intelligence': [
+                'Machine learning model performance has improved exponentially, with natural language processing accuracy exceeding 95% on standardized benchmarks.',
+                'AI implementation studies show productivity gains of 25-40% in organizations that successfully integrate artificial intelligence technologies.',
+                'Computer vision systems now achieve superhuman accuracy in medical imaging diagnosis, detecting conditions missed by traditional methods.',
+                'Automation forecasts suggest AI will create 97 million new jobs while transforming existing roles across multiple industries.'
+            ],
+            'startups': [
+                'Venture capital data indicates that startups with diverse founding teams are 2.9 times more likely to achieve successful exits.',
+                'Customer acquisition cost analysis shows that companies with strong product-market fit achieve 3x lower acquisition costs.',
+                'Cash flow management statistics reveal that 82% of business failures result from poor cash flow planning rather than profitability issues.',
+                'Scaling research demonstrates that companies maintaining culture during rapid growth achieve 4x higher employee retention rates.'
+            ],
+            'business': [
+                'Operations research indicates that businesses implementing lean methodologies achieve 15-25% cost reductions while improving quality metrics.',
+                'Customer experience studies show that companies with superior service delivery generate 5.7 times more revenue than competitors.',
+                'Leadership effectiveness analysis reveals that organizations with strong development programs achieve 2.3 times higher employee engagement.',
+                'Digital transformation data shows that businesses embracing technology integration increase market share by an average of 12%.'
             ]
         };
 
         const examples = categoryExamples[category] || categoryExamples['personal-finance'];
         
         const baseExpansions = [
-            'This concept requires understanding multiple interconnected factors that influence outcomes.',
-            'Professional practitioners in this field follow specific methodologies that have been refined over decades.',
-            'The implementation process involves several critical steps that must be executed in the correct sequence.',
-            'Common pitfalls include rushing the process, ignoring fundamental principles, and failing to adapt to changing conditions.',
-            'Success metrics should be clearly defined and regularly monitored to ensure you are making progress toward your goals.',
-            'Industry best practices emphasize the importance of continuous learning and staying updated with latest developments.',
-            'Risk management strategies are essential components that protect against potential downsides while maximizing upside potential.',
-            'The psychological aspects cannot be ignored - emotions and behavioral biases often derail even the best-laid plans.',
-            'Technology tools and platforms have made implementation more accessible, but human judgment remains irreplaceable.',
-            'Long-term thinking and patience are required, as most significant results compound over months and years rather than days or weeks.'
+            'Implementation methodology requires systematic evaluation of multiple interconnected variables that influence final outcomes.',
+            'Best practices documentation emphasizes the importance of establishing clear metrics before beginning any optimization process.',
+            'Strategic planning frameworks provide structured approaches for navigating complex decision-making scenarios.',
+            'Risk mitigation strategies help identify potential failure points before they compromise overall project success.',
+            'Performance monitoring systems enable real-time adjustments that maintain progress toward established objectives.',
+            'Resource optimization techniques maximize efficiency while minimizing waste in operational processes.',
+            'Stakeholder engagement protocols ensure alignment across all parties involved in implementation efforts.',
+            'Quality assurance processes maintain standards throughout execution phases, preventing costly errors.',
+            'Continuous improvement methodologies facilitate ongoing refinement based on performance feedback.',
+            'Change management principles help organizations adapt to new processes without disrupting core operations.'
         ];
 
-        let content = `When examining ${sectionTitle.toLowerCase()}, several key principles emerge that distinguish successful outcomes from mediocre ones. `;
+        let content = `Examining ${sectionTitle.toLowerCase()} reveals several critical success factors that determine outcomes. `;
         
-        // Add category-specific examples
-        const randomExamples = examples.sort(() => 0.5 - Math.random()).slice(0, 2);
-        content += randomExamples.join(' ') + ' ';
+        // Add varied category-specific examples
+        const selectedExamples = examples.sort(() => Math.random() - 0.5).slice(0, 2);
+        content += selectedExamples.join(' ') + ' ';
         
-        // Add base expansions until we reach target word count
-        const allExpansions = [...baseExpansions].sort(() => 0.5 - Math.random());
+        // Add randomized base expansions
+        const shuffledExpansions = baseExpansions.sort(() => Math.random() - 0.5);
         let currentWords = content.split(' ').length;
         
-        for (const expansion of allExpansions) {
+        for (const expansion of shuffledExpansions) {
             if (currentWords >= targetWords) break;
             content += expansion + ' ';
             currentWords = content.split(' ').length;
         }
         
-        // Trim to exact word count if needed
+        // Trim to exact word count
         const words = content.split(' ');
         if (words.length > targetWords) {
             content = words.slice(0, targetWords).join(' ');
@@ -332,30 +487,33 @@ class CompleteVideoGenerator {
         }
 
         try {
-            console.log('Generating voiceover with ElevenLabs...');
+            console.log(`Generating voiceover with ElevenLabs - Voice: ${voiceStyle}`);
             
+            // Corrected Voice IDs for proper gender mapping
             const voiceIds = {
-                'professional-male': '21m00Tcm4TlvDq8ikWAM',
-                'professional-female': 'AZnzlk1XvdvUeBnXmlld',
-                'conversational-male': 'pNInz6obpgDQGcFmaJgB',
-                'conversational-female': 'XB0fDUnXU5powFXDhCwa',
-                'authoritative-male': 'onwK4e9ZLuTAKqWW03F9',
-                'warm-female': 'oWAxZDx7w5VEj9dCyTzz'
+                'professional-male': '29vD33N1CtxCmqQRPOHJ',        // Professional male voice
+                'professional-female': 'AZnzlk1XvdvUeBnXmlld',     // Professional female voice  
+                'conversational-male': 'pNInz6obpgDQGcFmaJgB',     // Conversational male voice
+                'conversational-female': 'XB0fDUnXU5powFXDhCwa',   // Conversational female voice
+                'authoritative-male': 'onwK4e9ZLuTAKqWW03F9',      // Authoritative male voice
+                'warm-female': 'oWAxZDx7w5VEj9dCyTzz'              // Warm female voice
             };
 
-            const voiceId = voiceIds[voiceStyle] || voiceIds['professional-male'];
+            const selectedVoiceId = voiceIds[voiceStyle] || voiceIds['professional-male'];
+            console.log(`Using voice ID: ${selectedVoiceId} for style: ${voiceStyle}`);
             
             const response = await axios.post(
-                `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+                `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
                 {
                     text: script,
                     model_id: 'eleven_monolingual_v1',
                     voice_settings: {
-                        stability: 0.75,
-                        similarity_boost: 0.75,
-                        style: 0.5,
+                        stability: 0.85,           // Increased for clearer voice
+                        similarity_boost: 0.85,    // Increased for better quality
+                        style: 0.3,               // Reduced for more natural speech
                         use_speaker_boost: true
-                    }
+                    },
+                    output_format: "mp3_44100_128"  // Higher quality audio format
                 },
                 {
                     headers: {
@@ -363,7 +521,8 @@ class CompleteVideoGenerator {
                         'Content-Type': 'application/json',
                         'xi-api-key': this.elevenLabsKey
                     },
-                    responseType: 'arraybuffer'
+                    responseType: 'arraybuffer',
+                    timeout: 120000  // 2 minute timeout for long scripts
                 }
             );
 
@@ -371,13 +530,13 @@ class CompleteVideoGenerator {
             const audioFilePath = path.join(this.tempDir, audioFileName);
             
             await fs.writeFile(audioFilePath, response.data);
-            console.log('Voiceover generated successfully');
+            console.log(`Voiceover generated successfully: ${audioFileName} (${Math.round(response.data.byteLength / 1024)} KB)`);
             
             return audioFilePath;
             
         } catch (error) {
             console.error('ElevenLabs API error:', error.response?.data || error.message);
-            throw new Error('Voiceover generation failed');
+            throw new Error('Voiceover generation failed: ' + (error.response?.data?.detail || error.message));
         }
     }
 
@@ -390,15 +549,19 @@ class CompleteVideoGenerator {
                 images: []
             };
 
+            // Prioritize videos over static images for better visual experience
             if (this.pexelsKey) {
-                assets.videos = await this.downloadPexelsVideos(category, Math.min(3, sceneCount));
+                assets.videos = await this.downloadPexelsVideos(category, Math.max(5, sceneCount));
+                console.log(`Downloaded ${assets.videos.length} video clips`);
             }
 
-            if (this.pixabayKey) {
-                assets.images = await this.downloadPixabayImages(category, Math.min(5, sceneCount));
+            // Get fewer images since we have videos
+            if (this.pixabayKey && assets.videos.length < 3) {
+                assets.images = await this.downloadPixabayImages(category, 3);
+                console.log(`Downloaded ${assets.images.length} fallback images`);
             }
 
-            console.log(`Gathered ${assets.videos.length} videos and ${assets.images.length} images`);
+            console.log(`Total media assets: ${assets.videos.length} videos, ${assets.images.length} images`);
             return assets;
             
         } catch (error) {
@@ -412,50 +575,75 @@ class CompleteVideoGenerator {
 
         try {
             const searchTerms = {
-                'personal-finance': 'business money planning',
-                'investing': 'stock market charts',
-                'cryptocurrency': 'technology digital',
-                'artificial-intelligence': 'technology computer',
-                'startups': 'office business',
-                'business': 'professional meeting'
+                'personal-finance': ['business meeting', 'office work', 'money counting', 'calculator', 'financial planning'],
+                'investing': ['stock market', 'trading floor', 'charts graphs', 'business growth', 'financial data'],
+                'cryptocurrency': ['technology', 'computer screen', 'digital data', 'coding', 'futuristic'],
+                'artificial-intelligence': ['technology', 'robots', 'computer', 'data center', 'innovation'],
+                'startups': ['office space', 'teamwork', 'brainstorming', 'startup office', 'entrepreneurs'],
+                'business': ['business meeting', 'office', 'professional', 'corporate', 'workplace']
             };
 
-            const searchTerm = searchTerms[category] || 'business';
-            
-            const response = await axios.get('https://api.pexels.com/videos/search', {
-                headers: {
-                    'Authorization': this.pexelsKey
-                },
-                params: {
-                    query: searchTerm,
-                    per_page: count,
-                    orientation: 'landscape'
-                }
-            });
-
+            const terms = searchTerms[category] || searchTerms['business'];
             const downloadedVideos = [];
             
-            for (let i = 0; i < Math.min(response.data.videos.length, count); i++) {
-                const video = response.data.videos[i];
-                const videoFile = video.video_files.find(file => file.quality === 'hd') || video.video_files[0];
+            // Try multiple search terms to get variety
+            for (const term of terms) {
+                if (downloadedVideos.length >= count) break;
                 
-                if (videoFile) {
-                    const fileName = `pexels_video_${Date.now()}_${i}.mp4`;
-                    const filePath = path.join(this.tempDir, fileName);
-                    
-                    const videoResponse = await axios.get(videoFile.link, { responseType: 'stream' });
-                    const writeStream = fsSync.createWriteStream(filePath);
-                    
-                    await new Promise((resolve, reject) => {
-                        videoResponse.data.pipe(writeStream);
-                        writeStream.on('finish', resolve);
-                        writeStream.on('error', reject);
-                    });
-                    
-                    downloadedVideos.push(filePath);
+                console.log(`Searching Pexels for: ${term}`);
+                const response = await axios.get('https://api.pexels.com/videos/search', {
+                    headers: {
+                        'Authorization': this.pexelsKey
+                    },
+                    params: {
+                        query: term,
+                        per_page: Math.min(10, count - downloadedVideos.length),
+                        orientation: 'landscape'
+                    }
+                });
+
+                if (response.data.videos && response.data.videos.length > 0) {
+                    for (const video of response.data.videos) {
+                        if (downloadedVideos.length >= count) break;
+                        
+                        // Get the best quality video file
+                        const videoFile = video.video_files.find(file => 
+                            file.quality === 'hd' && file.width >= 1280
+                        ) || video.video_files.find(file => file.quality === 'sd') || video.video_files[0];
+                        
+                        if (videoFile && videoFile.link) {
+                            const fileName = `pexels_${term.replace(/\s+/g, '_')}_${Date.now()}_${downloadedVideos.length}.mp4`;
+                            const filePath = path.join(this.tempDir, fileName);
+                            
+                            try {
+                                console.log(`Downloading video: ${fileName}`);
+                                const videoResponse = await axios.get(videoFile.link, { 
+                                    responseType: 'stream',
+                                    timeout: 30000
+                                });
+                                const writeStream = fsSync.createWriteStream(filePath);
+                                
+                                await new Promise((resolve, reject) => {
+                                    videoResponse.data.pipe(writeStream);
+                                    writeStream.on('finish', resolve);
+                                    writeStream.on('error', reject);
+                                    setTimeout(reject, 30000); // 30 second timeout
+                                });
+                                
+                                downloadedVideos.push(filePath);
+                                console.log(`Successfully downloaded: ${fileName}`);
+                            } catch (downloadError) {
+                                console.error(`Failed to download video ${fileName}:`, downloadError.message);
+                            }
+                        }
+                    }
                 }
+                
+                // Small delay between API calls
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
             
+            console.log(`Successfully downloaded ${downloadedVideos.length} videos`);
             return downloadedVideos;
             
         } catch (error) {
