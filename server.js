@@ -1,4 +1,6 @@
 require('dotenv').config();
+// Railway-specific configuration
+app.set('trust proxy', 1);
 
 // AI Hollywood Studio - Production Backend with MongoDB
 const express = require('express');
