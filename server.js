@@ -77,46 +77,253 @@ class CompleteVideoGenerator {
         const templates = {
             'personal-finance': {
                 intro: `Welcome to your complete guide on ${title}. Today, we'll explore proven strategies that can transform your financial future and help you build lasting wealth.`,
-                mainContent: `Financial independence isn't just a dream - it's an achievable goal when you understand the right principles. Research shows that people who follow systematic approaches to personal finance are 3 times more likely to reach their financial goals. Let's break down the essential strategies you need to know.
-
-First, understand that wealth building is a marathon, not a sprint. The compound effect is your greatest ally. Even small, consistent actions compound over time to create significant results. This principle applies to saving, investing, and developing good financial habits.
-
-Second, automate your finances wherever possible. Set up automatic transfers to savings accounts, automate bill payments, and use technology to track your spending. Automation removes emotional decision-making from your financial routine.
-
-Third, focus on increasing your income alongside reducing expenses. While cutting costs is important, there's a limit to how much you can cut. Your income potential, however, is unlimited. Invest in skills, education, and opportunities that can boost your earning power.`,
-                conclusion: `Remember, every financial expert started exactly where you are now. The difference is they took action. Start implementing these strategies today, and you'll be amazed at your progress in just one year. Subscribe for more financial wisdom, and let me know in the comments which strategy you'll implement first.`
+                mainSections: [
+                    'Understanding the fundamentals and why this matters for your financial health',
+                    'Common mistakes people make and how to avoid them', 
+                    'Step-by-step implementation strategies',
+                    'Real-world examples and case studies',
+                    'Advanced tips for maximizing results',
+                    'Long-term planning and wealth building strategies',
+                    'Tax optimization and legal considerations',
+                    'Emergency fund planning and risk management'
+                ],
+                conclusion: `Remember, financial success is a journey, not a destination. Start implementing these strategies today, and you'll be amazed at the progress you can make. Subscribe for more financial wisdom, and let me know in the comments which strategy you'll implement first.`
             },
             'investing': {
                 intro: `Today we're diving deep into ${title}. The investment landscape offers incredible opportunities for those who understand the fundamentals and apply them consistently.`,
-                mainContent: `Successful investing isn't about timing the market perfectly or finding the next hot stock. It's about understanding market principles and applying them with discipline and patience.
-
-The foundation of good investing starts with understanding risk and return. Higher potential returns always come with higher risk. Your job as an investor is to find the optimal balance that aligns with your goals and risk tolerance.
-
-Diversification remains one of the most powerful tools in investing. Don't put all your eggs in one basket. Spread your investments across different asset classes, industries, and geographical regions. This strategy helps protect your portfolio during market downturns while still capturing growth opportunities.
-
-Dollar-cost averaging is particularly effective for long-term investors. Instead of trying to time the market, invest a fixed amount regularly regardless of market conditions. This approach reduces the impact of market volatility and helps build wealth steadily over time.`,
-                conclusion: `Investing success comes from patience, discipline, and continuous learning. These principles have helped countless investors build substantial wealth over time. Start with what you can afford, stay consistent, and let compound growth work its magic.`
+                mainSections: [
+                    'Market analysis and current opportunities',
+                    'Risk assessment and management strategies',
+                    'Portfolio diversification techniques',
+                    'Timing and execution strategies',
+                    'Long-term wealth building principles',
+                    'Dollar-cost averaging and systematic investing',
+                    'Tax-advantaged investment accounts',
+                    'International diversification strategies',
+                    'Alternative investment options',
+                    'Performance monitoring and rebalancing'
+                ],
+                conclusion: `Successful investing requires patience, discipline, and continuous learning. These principles have helped countless investors build substantial wealth over time. Start with what you can afford, stay consistent, and let compound growth work its magic.`
             },
             'cryptocurrency': {
                 intro: `Cryptocurrency represents one of the most significant financial innovations of our time. Understanding ${title} is crucial for anyone looking to participate in this digital revolution responsibly.`,
-                mainContent: `The crypto space moves fast, but the fundamentals remain constant. Blockchain technology provides the foundation for decentralized finance, offering transparency, security, and global accessibility that traditional systems can't match.
-
-Understanding market cycles is crucial in crypto. The market experiences periods of rapid growth followed by significant corrections. Successful crypto investors learn to navigate these cycles rather than being overwhelmed by them.
-
-Security should be your top priority. Use reputable exchanges, enable two-factor authentication, and consider hardware wallets for long-term storage. Never share your private keys, and be aware that crypto transactions are irreversible.`,
-                conclusion: `Cryptocurrency offers tremendous opportunities but requires careful consideration and ongoing education. Never invest more than you can afford to lose, stay security-conscious, and remember that this technology is still evolving.`
+                mainSections: [
+                    'Technology fundamentals and blockchain basics',
+                    'Market dynamics and price factors',
+                    'Security best practices and wallet management',
+                    'Trading strategies and technical analysis',
+                    'Future trends and regulatory considerations',
+                    'DeFi protocols and yield farming',
+                    'NFTs and digital asset ownership',
+                    'Institutional adoption and market maturity',
+                    'Risk management in volatile markets',
+                    'Long-term investment strategies'
+                ],
+                conclusion: `The crypto space moves fast, but with the right knowledge and careful approach, you can navigate it successfully. Stay informed, never invest more than you can afford to lose, and always prioritize security in your crypto journey.`
+            },
+            'artificial-intelligence': {
+                intro: `Artificial Intelligence is reshaping every industry, and ${title} represents one of the most significant developments in this space. Whether you're a business owner, investor, or tech enthusiast, understanding these concepts is essential.`,
+                mainSections: [
+                    'AI fundamentals and current capabilities',
+                    'Industry applications and use cases',
+                    'Investment opportunities and market trends',
+                    'Implementation strategies for businesses',
+                    'Future implications and ethical considerations',
+                    'Machine learning algorithms and data science',
+                    'Natural language processing and automation',
+                    'Computer vision and robotics applications',
+                    'AI safety and regulatory frameworks',
+                    'Career opportunities in the AI revolution'
+                ],
+                conclusion: `AI is not just the future—it's the present. By understanding and adapting to these changes now, you position yourself ahead of the curve. The opportunities are immense for those who take action today.`
+            },
+            'startups': {
+                intro: `Building a successful startup requires more than just a great idea. Today, we're exploring ${title} and the essential strategies that separate successful entrepreneurs from those who struggle.`,
+                mainSections: [
+                    'Idea validation and market research',
+                    'Building the right team and culture',
+                    'Funding strategies and investor relations',
+                    'Product development and iteration',
+                    'Scaling and growth strategies',
+                    'Customer acquisition and retention',
+                    'Financial planning and cash flow management',
+                    'Legal structures and intellectual property',
+                    'Marketing and brand building',
+                    'Exit strategies and long-term planning'
+                ],
+                conclusion: `Entrepreneurship is challenging but incredibly rewarding. Success comes to those who combine vision with execution, persistence with adaptability. Take these insights and start building something amazing today.`
+            },
+            'business': {
+                intro: `In today's competitive business environment, understanding ${title} can be the difference between thriving and merely surviving. This comprehensive guide will give you the strategic insights you need to succeed.`,
+                mainSections: [
+                    'Strategic planning and goal setting',
+                    'Market positioning and competitive advantage',
+                    'Operations optimization and efficiency',
+                    'Financial management and profitability',
+                    'Leadership and team development',
+                    'Digital transformation and technology adoption',
+                    'Customer experience and satisfaction',
+                    'Supply chain management and logistics',
+                    'Risk management and crisis planning',
+                    'Innovation and continuous improvement'
+                ],
+                conclusion: `Business success is built on solid fundamentals executed consistently. Implement these strategies systematically, measure your results, and never stop learning. Your future success depends on the actions you take today.`
             }
         };
 
-        const template = templates[category] || templates['personal-finance'];
-        const fullScript = `${template.intro}\n\n${template.mainContent}\n\n${template.conclusion}`;
+        const template = templates[category] || templates['business'];
+        const wordsPerMinute = 150;
+        const targetWords = duration * wordsPerMinute;
+        
+        console.log(`Generating script for ${duration} minutes (target: ${targetWords} words)`);
+        
+        // Calculate words per section
+        const introWords = Math.floor(targetWords * 0.15); // 15% for intro
+        const conclusionWords = Math.floor(targetWords * 0.10); // 10% for conclusion
+        const mainContentWords = targetWords - introWords - conclusionWords; // 75% for main content
+        
+        // Generate expanded intro
+        const expandedIntro = this.expandContent(template.intro, introWords, tone);
+        
+        // Generate expanded main content sections
+        const wordsPerSection = Math.floor(mainContentWords / template.mainSections.length);
+        const expandedSections = template.mainSections.map((section, index) => {
+            const sectionContent = this.expandSection(section, wordsPerSection, tone, category);
+            const timing = `${Math.floor(index * (duration / template.mainSections.length))}-${Math.floor((index + 1) * (duration / template.mainSections.length))} minutes`;
+            
+            return {
+                title: section,
+                content: sectionContent,
+                timing: timing
+            };
+        });
+        
+        // Generate expanded conclusion
+        const expandedConclusion = this.expandContent(template.conclusion, conclusionWords, tone);
+        
+        // Combine all content
+        const fullContent = [
+            expandedIntro,
+            ...expandedSections.map(s => s.content),
+            expandedConclusion
+        ].join('\n\n');
+        
+        console.log(`Generated script: ${fullContent.split(' ').length} words for ${duration} minutes`);
         
         return {
             title,
-            content: fullScript,
-            scenes: 5,
-            duration: duration
+            intro: expandedIntro,
+            sections: expandedSections,
+            conclusion: expandedConclusion,
+            content: fullContent,
+            scenes: expandedSections.length + 2,
+            duration: duration,
+            wordCount: fullContent.split(' ').length
         };
+    }
+
+    expandContent(baseContent, targetWords, tone) {
+        const toneStyles = {
+            'professional': 'In professional terms, ',
+            'educational': 'From an educational perspective, ',
+            'conversational': 'Let me explain this simply - ',
+            'authoritative': 'Industry experts consistently demonstrate that ',
+            'motivational': 'Here is what successful people understand - '
+        };
+
+        const starter = toneStyles[tone] || toneStyles['educational'];
+        
+        const expansions = [
+            'Research consistently shows that individuals who understand these principles achieve significantly better results than those who rely purely on intuition or guesswork.',
+            'The data from thousands of case studies reveals clear patterns that separate successful outcomes from mediocre ones.',
+            'When you examine the strategies used by top performers in this field, several key factors emerge that anyone can implement.',
+            'The most common mistake people make is underestimating the importance of systematic approaches and overestimating the impact of individual tactics.',
+            'What many people do not realize is that success in this area follows predictable patterns that have been documented across multiple industries and time periods.',
+            'The compound effect plays a crucial role here - small, consistent actions build momentum over time to create remarkable results.',
+            'Understanding the psychology behind these concepts is just as important as knowing the technical details.',
+            'Modern technology and data analytics have given us unprecedented insights into what actually works versus what sounds good in theory.',
+            'The key is to balance proven fundamentals with innovative approaches that take advantage of current market conditions.',
+            'Timing and execution matter, but having a solid foundation of knowledge and principles is what enables you to recognize and capitalize on opportunities.'
+        ];
+
+        let expandedContent = baseContent;
+        let currentWords = baseContent.split(' ').length;
+        
+        while (currentWords < targetWords) {
+            const randomExpansion = expansions[Math.floor(Math.random() * expansions.length)];
+            expandedContent += ' ' + randomExpansion;
+            currentWords = expandedContent.split(' ').length;
+        }
+        
+        // Trim to exact word count if needed
+        const words = expandedContent.split(' ');
+        if (words.length > targetWords) {
+            expandedContent = words.slice(0, targetWords).join(' ');
+        }
+        
+        return expandedContent;
+    }
+
+    expandSection(sectionTitle, targetWords, tone, category) {
+        const categoryExamples = {
+            'personal-finance': [
+                'For example, consider the 50-30-20 budgeting rule where you allocate 50% to needs, 30% to wants, and 20% to savings and debt repayment.',
+                'High-yield savings accounts currently offer rates between 4-5%, significantly outperforming traditional savings accounts.',
+                'The average millionaire has seven different income streams, demonstrating the power of diversified revenue sources.',
+                'Compound interest is often called the eighth wonder of the world - a $1000 investment at 10% annual return becomes over $17,000 in 30 years.'
+            ],
+            'investing': [
+                'The S&P 500 has delivered an average annual return of approximately 10% over the past 90 years, despite short-term volatility.',
+                'Dollar-cost averaging into index funds has historically outperformed trying to time the market in 80% of cases.',
+                'Warren Buffett has consistently recommended low-cost index funds for most investors, calling them the best investment for ordinary people.',
+                'Asset allocation becomes more conservative as you approach retirement - the rule of thumb is your bond percentage should equal your age.'
+            ],
+            'cryptocurrency': [
+                'Bitcoin has experienced four major bull and bear cycles since 2009, each following similar patterns of adoption and correction.',
+                'Institutional adoption has accelerated with companies like Tesla, MicroStrategy, and PayPal adding Bitcoin to their balance sheets.',
+                'DeFi protocols have locked over $40 billion in total value, representing a new paradigm for financial services.',
+                'The energy consumption debate around Bitcoin mining has led to increased focus on renewable energy sources in the industry.'
+            ]
+        };
+
+        const examples = categoryExamples[category] || categoryExamples['personal-finance'];
+        
+        const baseExpansions = [
+            'This concept requires understanding multiple interconnected factors that influence outcomes.',
+            'Professional practitioners in this field follow specific methodologies that have been refined over decades.',
+            'The implementation process involves several critical steps that must be executed in the correct sequence.',
+            'Common pitfalls include rushing the process, ignoring fundamental principles, and failing to adapt to changing conditions.',
+            'Success metrics should be clearly defined and regularly monitored to ensure you are making progress toward your goals.',
+            'Industry best practices emphasize the importance of continuous learning and staying updated with latest developments.',
+            'Risk management strategies are essential components that protect against potential downsides while maximizing upside potential.',
+            'The psychological aspects cannot be ignored - emotions and behavioral biases often derail even the best-laid plans.',
+            'Technology tools and platforms have made implementation more accessible, but human judgment remains irreplaceable.',
+            'Long-term thinking and patience are required, as most significant results compound over months and years rather than days or weeks.'
+        ];
+
+        let content = `When examining ${sectionTitle.toLowerCase()}, several key principles emerge that distinguish successful outcomes from mediocre ones. `;
+        
+        // Add category-specific examples
+        const randomExamples = examples.sort(() => 0.5 - Math.random()).slice(0, 2);
+        content += randomExamples.join(' ') + ' ';
+        
+        // Add base expansions until we reach target word count
+        const allExpansions = [...baseExpansions].sort(() => 0.5 - Math.random());
+        let currentWords = content.split(' ').length;
+        
+        for (const expansion of allExpansions) {
+            if (currentWords >= targetWords) break;
+            content += expansion + ' ';
+            currentWords = content.split(' ').length;
+        }
+        
+        // Trim to exact word count if needed
+        const words = content.split(' ');
+        if (words.length > targetWords) {
+            content = words.slice(0, targetWords).join(' ');
+        }
+        
+        return content;
     }
 
     async generateVoiceover(script, voiceStyle, title) {
