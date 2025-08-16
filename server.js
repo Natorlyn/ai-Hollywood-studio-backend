@@ -1273,6 +1273,44 @@ app.get('/api/admin/videos', authenticateToken, requireAdmin, async (req, res) =
     }
 });
 
+// Add this temporary test route to your server.js after the other routes
+app.post('/api/test/video-generation', async (req, res) => {
+    try {
+        console.log('Testing video generation with hardcoded API keys');
+        
+        // Use your actual API keys directly (no encryption/decryption)
+        const testApiKeys = {
+            elevenlabs: 'sk_3fd3daaee07d60fcfab198ae722c52b0fd7fc2fd042d3665',
+            pexels: 'tq4on2f4TKzpi0Gxx76PfkdM0QPUlzfUeiNBCHnD9SVppIY2CTSzGDn2',
+            pixabay: '51815792-2b650d1ed1468d740550fd7f9'
+        };
+
+        const generator = new CompleteVideoGenerator(testApiKeys);
+        
+        const videoResult = await generator.generateVideo({
+            title: 'Test Video Generation',
+            category: 'personal-finance',
+            duration: 1, // Short test video
+            tone: 'professional',
+            voiceStyle: 'professional-male',
+            visualStyle: 'corporate'
+        });
+
+        res.json({
+            success: true,
+            message: 'Test video generation completed',
+            result: videoResult
+        });
+
+    } catch (error) {
+        console.error('Test video generation failed:', error);
+        res.status(500).json({ 
+            error: error.message,
+            stack: error.stack 
+        });
+    }
+});
+
 // Error handling for undefined routes
 app.use('*', (req, res) => {
     res.status(404).json({
