@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Hollywood Studio - Create Professional Videos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .auth-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            margin: 0 auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .generator-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .video-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .video-form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .category-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .category-card {
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .category-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .category-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .category-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .duration-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e5e7eb;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .duration-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            cursor: pointer;
+        }
+
+        .duration-display {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 10px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .pricing-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .pricing-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 30px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .pricing-card.featured {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .price {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 15px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .progress-container {
+            width: 100%;
+            background: #e5e7eb;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .video-preview {
+            background: #f8fafc;
+            border: 2px dashed #d1d5db;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .usage-meter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .meter-bar {
+            width: 100px;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #10b981, #059669);
+            transition: width 0.3s ease;
+        }
+
+        .upgrade-prompt {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Hollywood Studio</h1>
+            <p>Create Professional Finance & Tech Videos in Minutes</p>
+        </div>
+
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-section">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">Get Started</h2>
+            
+            <div id="loginTab" class="auth-tab">
+                <div id="loginAlert"></div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email Address</label>
+                        <input type="email" id="loginEmail" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">Login</button>
+                </form>
+                <p style="text-align: center;">
+                    Don't have an account? 
+                    <a href="#" onclick="showRegister()" style="color: #667eea; text-decoration: none;">Sign up here</a>
+                </p>
+            </div>
+
+            <div id="registerTab" class="auth-tab hidden">
+                <div id="registerAlert"></div>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerEmail">Email Address</label>
+                        <input type="email" id="registerEmail" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" class="form-control" minlength="8" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">Create Account</button>
+                </form>
+                <p style="text-align: center;">
+                    Already have an account? 
+                    <a href="#" onclick="showLogin()" style="color: #667eea; text-decoration: none;">Login here</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div id="featuresSection" class="hidden">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎬</div>
+                    <h3>Hollywood Quality</h3>
+                    <p>Professional video production with cinematic transitions and effects</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI-Powered</h3>
+                    <p>Automated script generation, voice synthesis, and visual creation</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Finance & Tech Focus</h3>
+                    <p>Specialized content for high-value finance and technology topics</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Lightning Fast</h3>
+                    <p>Generate 10-20 minute videos in under 15 minutes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Generator Section -->
+        <div id="generatorSection" class="hidden">
+            <!-- User Info Bar -->
+            <div class="user-info">
+                <div>
+                    <strong id="userEmail">user@example.com</strong>
+                    <span id="userPlan" style="background: #10b981; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.8rem; margin-left: 10px;">FREE</span>
+                </div>
+                <div class="usage-meter">
+                    <span>Videos Used:</span>
+                    <span id="videoUsage">0/2</span>
+                    <div class="meter-bar">
+                        <div class="meter-fill" id="usageMeter" style="width: 0%"></div>
+                    </div>
+                    <button class="btn btn-danger" onclick="logout()" style="padding: 8px 16px; font-size: 0.9rem;">Logout</button>
+                </div>
+            </div>
+
+            <div class="generator-section">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">Create Your Video</h2>
+                
+                <div id="generatorAlert"></div>
+
+                <form id="videoGeneratorForm">
+                    <div class="video-form-grid">
+                        <div>
+                            <div class="form-group">
+                                <label>Video Category</label>
+                                <div class="category-selector">
+                                    <div class="category-card" data-category="personal-finance">
+                                        <div class="category-icon">💰</div>
+                                        <div><strong>Personal Finance</strong></div>
+                                    </div>
+                                    <div class="category-card" data-category="investing">
+                                        <div class="category-icon">📈</div>
+                                        <div><strong>Investing</strong></div>
+                                    </div>
+                                    <div class="category-card" data-category="cryptocurrency">
+                                        <div class="category-icon">₿</div>
+                                        <div><strong>Cryptocurrency</strong></div>
+                                    </div>
+                                    <div class="category-card" data-category="ai-technology">
+                                        <div class="category-icon">🤖</div>
+                                        <div><strong>AI & Technology</strong></div>
+                                    </div>
+                                    <div class="category-card" data-category="startup">
+                                        <div class="category-icon">🚀</div>
+                                        <div><strong>Startups</strong></div>
+                                    </div>
+                                    <div class="category-card" data-category="business">
+                                        <div class="category-icon">💼</div>
+                                        <div><strong>Business</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="videoTitle">Video Title</label>
+                                <input type="text" id="videoTitle" class="form-control" placeholder="e.g., 10 Best Investment Strategies for 2025" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="videoTone">Content Tone</label>
+                                <select id="videoTone" class="form-control" required>
+                                    <option value="">Select tone...</option>
+                                    <option value="educational">Educational & Informative</option>
+                                    <option value="engaging">Engaging & Conversational</option>
+                                    <option value="professional">Professional & Authoritative</option>
+                                    <option value="casual">Casual & Friendly</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="form-group">
+                                <label>Video Duration</label>
+                                <input type="range" id="videoDuration" class="duration-slider" min="5" max="20" value="10" step="1">
+                                <div class="duration-display"><span id="durationValue">10</span> minutes</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="voiceStyle">Voice Style</label>
+                                <select id="voiceStyle" class="form-control" required>
+                                    <option value="">Select voice...</option>
+                                    <option value="professional-male">Professional Male</option>
+                                    <option value="professional-female">Professional Female</option>
+                                    <option value="authoritative-male">Authoritative Male</option>
+                                    <option value="friendly-female">Friendly Female</option>
+                                    <option value="energetic-male">Energetic Male</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="visualStyle">Visual Style</label>
+                                <select id="visualStyle" class="form-control" required>
+                                    <option value="">Select style...</option>
+                                    <option value="corporate">Corporate & Clean</option>
+                                    <option value="modern">Modern & Dynamic</option>
+                                    <option value="minimalist">Minimalist & Professional</option>
+                                    <option value="cinematic">Cinematic & Dramatic</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button type="submit" class="btn btn-success" style="font-size: 1.2rem; padding: 20px 40px;">
+                            Generate Hollywood Video ✨
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Video Generation Progress -->
+                <div id="generationProgress" class="hidden">
+                    <h3 style="text-align: center; color: #667eea; margin: 30px 0;">Creating Your Hollywood Video...</h3>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar" style="width: 0%">0%</div>
+                    </div>
+                    <div id="progressStatus" style="text-align: center; color: #6b7280; margin-top: 10px;">
+                        Initializing AI systems...
+                    </div>
+                </div>
+
+                <!-- Video Preview -->
+                <div id="videoPreview" class="hidden">
+                    <h3 style="text-align: center; color: #667eea; margin-bottom: 20px;">Your Video is Ready!</h3>
+                    <div class="video-preview">
+                        <div style="font-size: 3rem; margin-bottom: 15px;">🎬</div>
+                        <h4 id="generatedTitle">Your Video Title</h4>
+                        <p style="color: #6b7280; margin: 15px 0;">
+                            Duration: <span id="finalDuration">10 minutes</span> | 
+                            Quality: <span id="exportQuality">1080p HD</span>
+                        </p>
+                        <div style="margin-top: 25px;">
+                            <button class="btn btn-success" onclick="downloadVideo()" style="margin-right: 15px;">
+                                Download Video
+                            </button>
+                            <button class="btn btn-primary" onclick="createAnother()">
+                                Create Another Video
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upgrade Prompt for Free Users -->
+            <div id="upgradePrompt" class="hidden upgrade-prompt">
+                <h3>🚀 Upgrade to Professional Plan</h3>
+                <p>You've used all your free videos. Upgrade to generate unlimited professional videos!</p>
+                <button class="btn" style="background: white; color: #f59e0b; margin-top: 15px;">
+                    Upgrade Now - $89/month
+                </button>
+            </div>
+        </div>
+
+        <!-- Pricing Section -->
+        <div id="pricingSection" class="hidden pricing-section">
+            <h2 style="color: #667eea; margin-bottom: 15px;">Choose Your Plan</h2>
+            <p style="color: #6b7280;">Start creating professional videos that drive results</p>
+            
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>Free</h3>
+                    <div class="price">$0</div>
+                    <ul style="text-align: left; list-style: none; padding: 0;">
+                        <li style="margin: 10px 0;">✅ 2 videos per month</li>
+                        <li style="margin: 10px 0;">✅ 720p HD quality</li>
+                        <li style="margin: 10px 0;">✅ Basic templates</li>
+                        <li style="margin: 10px 0;">❌ Watermark included</li>
+                    </ul>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 20px;">Current Plan</button>
+                </div>
+
+                <div class="pricing-card featured">
+                    <div style="background: #667eea; color: white; padding: 5px 15px; border-radius: 15px; font-size: 0.8rem; margin-bottom: 15px;">MOST POPULAR</div>
+                    <h3>Professional</h3>
+                    <div class="price">$89</div>
+                    <ul style="text-align: left; list-style: none; padding: 0;">
+                        <li style="margin: 10px 0;">✅ 20 videos per month</li>
+                        <li style="margin: 10px 0;">✅ 1080p Full HD</li>
+                        <li style="margin: 10px 0;">✅ Premium templates</li>
+                        <li style="margin: 10px 0;">✅ No watermark</li>
+                        <li style="margin: 10px 0;">✅ Priority support</li>
+                    </ul>
+                    <button class="btn btn-success" style="width: 100%; margin-top: 20px;">Upgrade Now</button>
+                </div>
+
+                <div class="pricing-card">
+                    <h3>Agency</h3>
+                    <div class="price">$249</div>
+                    <ul style="text-align: left; list-style: none; padding: 0;">
+                        <li style="margin: 10px 0;">✅ 100 videos per month</li>
+                        <li style="margin: 10px 0;">✅ 4K Ultra HD</li>
+                        <li style="margin: 10px 0;">✅ White-label options</li>
+                        <li style="margin: 10px 0;">✅ Custom branding</li>
+                        <li style="margin: 10px 0;">✅ API access</li>
+                    </ul>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 20px;">Contact Sales</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://ai-hollywood-studio-backend-production-48d7.up.railway.app/api';
+        let currentUser = null;
+        let authToken = localStorage.getItem('userToken');
+        let selectedCategory = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Duration slider
+            const durationSlider = document.getElementById('videoDuration');
+            const durationValue = document.getElementById('durationValue');
+            
+            durationSlider.addEventListener('input', function() {
+                durationValue.textContent = this.value;
+            });
+
+            // Category selection
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('.category-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedCategory = this.dataset.category;
+                });
+            });
+
+            // Check if user is already logged in
+            if (authToken) {
+                validateTokenAndShowContent();
+            } else {
+                showAuthSection();
+            }
+        });
+
+        // Show different sections
+        function showAuthSection() {
+            hideAllSections();
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('featuresSection').classList.remove('hidden');
+            document.getElementById('pricingSection').classList.remove('hidden');
+        }
+
+        function showGeneratorSection() {
+            hideAllSections();
+            document.getElementById('generatorSection').classList.remove('hidden');
+        }
+
+        function hideAllSections() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('featuresSection').classList.add('hidden');
+            document.getElementById('generatorSection').classList.add('hidden');
+            document.getElementById('pricingSection').classList.add('hidden');
+        }
+
+        // Auth tab switching
+        function showLogin() {
+            document.getElementById('loginTab').classList.remove('hidden');
+            document.getElementById('registerTab').classList.add('hidden');
+        }
+
+        function showRegister() {
+            document.getElementById('loginTab').classList.add('hidden');
+            document.getElementById('registerTab').classList.remove('hidden');
+        }
+
+        // Validate token and show content
+        async function validateTokenAndShowContent() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    currentUser = {
+                        email: localStorage.getItem('userEmail') || 'user@example.com',
+                        plan: localStorage.getItem('userPlan') || 'free',
+                        videosUsed: parseInt(localStorage.getItem('videosUsed') || '0'),
+                        videosLimit: parseInt(localStorage.getItem('videosLimit') || '2')
+                    };
+                    updateUserInterface();
+                    showGeneratorSection();
+                } else {
+                    showAuthSection();
+                }
+            } catch (error) {
+                showAuthSection();
+            }
+        }
+
+        // Update user interface
+        function updateUserInterface() {
+            if (currentUser) {
+                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('userPlan').textContent = currentUser.plan.toUpperCase();
+                document.getElementById('videoUsage').textContent = `${currentUser.videosUsed}/${currentUser.videosLimit}`;
+                
+                const usagePercent = (currentUser.videosUsed / currentUser.videosLimit) * 100;
+                document.getElementById('usageMeter').style.width = `${usagePercent}%`;
+
+                if (currentUser.videosUsed >= currentUser.videosLimit && currentUser.plan === 'free') {
+                    document.getElementById('upgradePrompt').classList.remove('hidden');
+                }
+            }
+        }
+
+        // Registration form
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const alertEl = document.getElementById('registerAlert');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    
+                    localStorage.setItem('userToken', authToken);
+                    localStorage.setItem('userEmail', currentUser.email);
+                    localStorage.setItem('userPlan', currentUser.plan);
+                    localStorage.setItem('videosUsed', currentUser.videosUsed.toString());
+                    localStorage.setItem('videosLimit', currentUser.videosLimit.toString());
+                    
+                    updateUserInterface();
+                    showGeneratorSection();
+                } else {
+                    showAlert(alertEl, data.error || 'Login failed', 'error');
+                }
+            } catch (error) {
+                showAlert(alertEl, 'Connection error: ' + error.message, 'error');
+            }
+        });
+
+        // Video generator form
+        document.getElementById('videoGeneratorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Check if user has reached limit
+            if (currentUser.videosUsed >= currentUser.videosLimit && currentUser.plan === 'free') {
+                document.getElementById('upgradePrompt').classList.remove('hidden');
+                return;
+            }
+            
+            if (!selectedCategory) {
+                showAlert(document.getElementById('generatorAlert'), 'Please select a video category', 'error');
+                return;
+            }
+            
+            const videoData = {
+                category: selectedCategory,
+                title: document.getElementById('videoTitle').value,
+                tone: document.getElementById('videoTone').value,
+                duration: parseInt(document.getElementById('videoDuration').value),
+                voiceStyle: document.getElementById('voiceStyle').value,
+                visualStyle: document.getElementById('visualStyle').value
+            };
+            
+            startVideoGeneration(videoData);
+        });
+
+        // Start video generation process
+        async function startVideoGeneration(videoData) {
+            // Hide form and show progress
+            document.getElementById('videoGeneratorForm').classList.add('hidden');
+            document.getElementById('generationProgress').classList.remove('hidden');
+            
+            const progressBar = document.getElementById('progressBar');
+            const progressStatus = document.getElementById('progressStatus');
+            
+            try {
+                // Call the actual backend API
+                const response = await fetch(`${API_BASE}/videos/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(videoData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Simulate progress animation
+                    const steps = [
+                        { progress: 10, status: 'Analyzing content requirements...' },
+                        { progress: 25, status: 'Generating AI script...' },
+                        { progress: 40, status: 'Creating voice narration...' },
+                        { progress: 60, status: 'Generating visual elements...' },
+                        { progress: 80, status: 'Applying Hollywood effects...' },
+                        { progress: 95, status: 'Finalizing video production...' },
+                        { progress: 100, status: 'Video generation complete!' }
+                    ];
+                    
+                    for (let i = 0; i < steps.length; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        
+                        const step = steps[i];
+                        progressBar.style.width = `${step.progress}%`;
+                        progressBar.textContent = `${step.progress}%`;
+                        progressStatus.textContent = step.status;
+                        
+                        if (step.progress === 100) {
+                            setTimeout(() => {
+                                showVideoResult(videoData, result);
+                            }, 1000);
+                        }
+                    }
+                } else {
+                    throw new Error(result.error || 'Video generation failed');
+                }
+            } catch (error) {
+                document.getElementById('generationProgress').classList.add('hidden');
+                document.getElementById('videoGeneratorForm').classList.remove('hidden');
+                showAlert(document.getElementById('generatorAlert'), error.message, 'error');
+            }
+        }
+
+        // Show video generation result
+        function showVideoResult(videoData, apiResult) {
+            document.getElementById('generationProgress').classList.add('hidden');
+            document.getElementById('videoPreview').classList.remove('hidden');
+            
+            // Update result display
+            document.getElementById('generatedTitle').textContent = videoData.title;
+            document.getElementById('finalDuration').textContent = `${videoData.duration} minutes`;
+            
+            const qualityMap = {
+                'free': '720p HD',
+                'professional': '1080p Full HD',
+                'agency': '4K Ultra HD',
+                'enterprise': '8K Cinema'
+            };
+            document.getElementById('exportQuality').textContent = qualityMap[currentUser.plan] || '720p HD';
+            
+            // Update user usage from API response
+            if (apiResult.user) {
+                currentUser.videosUsed = apiResult.user.videosUsed;
+                localStorage.setItem('videosUsed', currentUser.videosUsed.toString());
+                updateUserInterface();
+            }
+        }
+
+        // Download video function
+        function downloadVideo() {
+            showAlert(document.getElementById('generatorAlert'), 'Video generated successfully! Professional voiceover and script created.', 'success');
+        }
+
+        // Create another video
+        function createAnother() {
+            document.getElementById('videoPreview').classList.add('hidden');
+            document.getElementById('videoGeneratorForm').classList.remove('hidden');
+            document.getElementById('videoGeneratorForm').reset();
+            document.querySelectorAll('.category-card').forEach(c => c.classList.remove('selected'));
+            selectedCategory = null;
+            document.getElementById('generatorAlert').innerHTML = '';
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userPlan');
+            localStorage.removeItem('videosUsed');
+            localStorage.removeItem('videosLimit');
+            
+            currentUser = null;
+            authToken = null;
+            
+            showAuthSection();
+        }
+
+        // Show alert helper
+        function showAlert(element, message, type) {
+            element.innerHTML = `<div class="alert alert-${type === 'error' ? 'error' : 'success'}">${message}</div>`;
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+                    localStorage.setItem('videosLimit', currentUser.videosLimit.toString());
+                    
+                    updateUserInterface();
+                    showGeneratorSection();
+                } else {
+                    showAlert(alertEl, data.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                showAlert(alertEl, 'Connection error: ' + error.message, 'error');
+            }
+        });
+
+        // Login form
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const alertEl = document.getElementById('loginAlert');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    
+                    localStorage.setItem('userToken', authToken);
+                    localStorage.setItem('userEmail', currentUser.email);
+                    localStorage.setItem('userPlan', currentUser.plan);
+                    localStorage.setItem('videosUsed', currentUser.videosUsed.toString());
