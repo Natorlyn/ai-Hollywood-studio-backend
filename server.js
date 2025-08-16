@@ -1,103 +1,4 @@
-async createVideoWithClips(audioFile, videos, outputPath, duration) {
-        const videoList = videos.slice(0, Math.min(8, videos.length)); // Use up to 8 videos for variety
-        
-        if (videoList.length === 0) {
-            throw new Error('No video clips available for compilation');
-        }
-        
-        console.log(`Creating video with ${videoList.length} clips for ${duration} seconds`);
-        
-        try {
-            // Create a complex filter that cycles through videos
-            let filterComplex = '';
-            let inputs = `-i "${audioFile}" `;
-            
-            // Add all video inputs
-            for (let i = 0; i < videoList.length; i++) {
-                inputs += `-i "${videoList[i]}" `;
-            }
-            
-            // Calculate segment duration for each video clip
-            const segmentDuration = Math.max(3, duration / videoList.length); // Minimum 3 seconds per clip
-            
-            // Create scaled and timed video segments
-            for (let i = 0; i < videoList.length; i++) {
-                filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setpts=PTS-STARTPTS,trim=duration=${segmentDuration},setpts=PTS-STARTPTS[v${i}];`;
-            }
-            
-            // Concatenate all video segments
-            filterComplex += videoList.map((_, i) => `[v${i}]`).join('') + `concat=n=${videoList.length}:v=1:a=0[outv]`;
-            
-            // Enhanced FFmpeg command with better audio handling
-            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -t ${duration} "${outputPath}"`;
-            
-            console.log('Executing FFmpeg video compilation...');
-            await execAsync(command, { timeout: 300000 }); // 5 minute timeout
-            console.log('Video compilation with clips completed successfully');
-            
-        } catch (error) {
-            console.error('Video compilation with clips failed:', error);
-            // Fallback to simpler approach if complex compilation fails
-            await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
-        }
-    }
-
-    async createVideoFromImages(audioFile, images, outputPath, duration) {
-        const imageList = images.slice(0, Math.min(10, images.length)); // Use up to 10 images
-        
-        if (imageList.length === 0) {
-            throw new Error('No images available for slideshow');
-        }
-        
-        console.log(`Creating slideshow with ${imageList.length} images`);
-        
-        try {
-            const imageDuration = Math.max(2, duration / imageList.length); // Minimum 2 seconds per image
-            
-            let filterComplex = '';
-            let inputs = `-i "${audioFile}" `;
-            
-            // Add image inputs with loop and duration
-            for (let i = 0; i < imageList.length; i++) {
-                inputs += `-loop 1 -t ${imageDuration} -i "${imageList[i]}" `;
-                filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,fade=t=in:st=0:d=0.5,fade=t=out:st=${imageDuration - 0.5}:d=0.5,setpts=PTS-STARTPTS[v${i}];`;
-            }
-            
-            // Concatenate all images
-            filterComplex += imageList.map((_, i) => `[v${i}]`).join('') + `concat=n=${imageList.length}:v=1:a=0[outv]`;
-            
-            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -shortest "${outputPath}"`;
-            
-            console.log('Executing FFmpeg slideshow creation...');
-            await execAsync(command, { timeout: 300000 });
-            console.log('Slideshow creation completed successfully');
-            
-        } catch (error) {
-            console.error('Slideshow creation failed:', error);
-            // Fallback to simple video with audio
-            await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
-        }
-    }
-
-    async createSimpleVideo(audioFile, outputPath, duration) {
-        await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
-    }
-
-    async createSimpleVideoWithAudio(audioFile, outputPath, duration) {
-        try {
-            console.log('Creating simple video with enhanced audio mixing...');
-            
-            // Create an engaging animated background with audio
-            const command = `ffmpeg -y -i "${audioFile}" -f lavfi -i "color=c=#1a1a2e:s=1920x1080:d=${duration},geq=r='255*sin(2*PI*T/10)':g='255*sin(2*PI*T/10 + 2*PI/3)':b='255*sin(2*PI*T/10 + 4*PI/3)'" -filter_complex "[1:v]fade=t=in:st=0:d=2,fade=t=out:st=${duration-2}:d=2[v];[0:a]volume=1.2,highpass=f=80,lowpass=f=8000[a]" -map "[v]" -map "[a]" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -shortest "${outputPath}"`;
-            
-            await execAsync(command, { timeout: 180000 }); // 3 minute timeout
-            console.log('Simple video with enhanced audio created successfully');
-            
-        } catch (error) {
-            console.error('Simple video creation failed:', error);
-            throw error;
-        }
-    }require('dotenv').config();
+require('dotenv').config();
 
 // Debug environment variables
 console.log('Environment check - MongoDB URI exists:', !!process.env.MONGODB_URI);
@@ -125,7 +26,19 @@ const { promisify } = require('util');
 
 const execAsync = promisify(exec);
 
-// Enhanced Video Generation System (keeping existing implementation)
+// Environment variables
+const PORT = process.env.PORT || 8080;
+const MONGODB_URI = process.env.MONGODB_URI;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-encryption-key';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'casteroai001@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
+// Database and authentication
+let db;
+let authManager;
+
+// Enhanced Video Generation System
 class CompleteVideoGenerator {
     constructor(apiKeys) {
         this.elevenLabsKey = apiKeys.elevenlabs;
@@ -277,9 +190,9 @@ class CompleteVideoGenerator {
         console.log(`Generating script for ${duration} minutes (target: ${targetWords} words)`);
         
         // Calculate words per section
-        const introWords = Math.floor(targetWords * 0.15); // 15% for intro
-        const conclusionWords = Math.floor(targetWords * 0.10); // 10% for conclusion
-        const mainContentWords = targetWords - introWords - conclusionWords; // 75% for main content
+        const introWords = Math.floor(targetWords * 0.15);
+        const conclusionWords = Math.floor(targetWords * 0.10);
+        const mainContentWords = targetWords - introWords - conclusionWords;
         
         // Generate expanded intro
         const expandedIntro = this.expandContent(template.intro, introWords, tone);
@@ -491,12 +404,12 @@ class CompleteVideoGenerator {
             
             // Corrected Voice IDs for proper gender mapping
             const voiceIds = {
-                'professional-male': '29vD33N1CtxCmqQRPOHJ',        // Professional male voice
-                'professional-female': 'AZnzlk1XvdvUeBnXmlld',     // Professional female voice  
-                'conversational-male': 'pNInz6obpgDQGcFmaJgB',     // Conversational male voice
-                'conversational-female': 'XB0fDUnXU5powFXDhCwa',   // Conversational female voice
-                'authoritative-male': 'onwK4e9ZLuTAKqWW03F9',      // Authoritative male voice
-                'warm-female': 'oWAxZDx7w5VEj9dCyTzz'              // Warm female voice
+                'professional-male': '29vD33N1CtxCmqQRPOHJ',
+                'professional-female': 'AZnzlk1XvdvUeBnXmlld',
+                'conversational-male': 'pNInz6obpgDQGcFmaJgB',
+                'conversational-female': 'XB0fDUnXU5powFXDhCwa',
+                'authoritative-male': 'onwK4e9ZLuTAKqWW03F9',
+                'warm-female': 'oWAxZDx7w5VEj9dCyTzz'
             };
 
             const selectedVoiceId = voiceIds[voiceStyle] || voiceIds['professional-male'];
@@ -508,12 +421,12 @@ class CompleteVideoGenerator {
                     text: script,
                     model_id: 'eleven_monolingual_v1',
                     voice_settings: {
-                        stability: 0.85,           // Increased for clearer voice
-                        similarity_boost: 0.85,    // Increased for better quality
-                        style: 0.3,               // Reduced for more natural speech
+                        stability: 0.85,
+                        similarity_boost: 0.85,
+                        style: 0.3,
                         use_speaker_boost: true
                     },
-                    output_format: "mp3_44100_128"  // Higher quality audio format
+                    output_format: "mp3_44100_128"
                 },
                 {
                     headers: {
@@ -522,7 +435,7 @@ class CompleteVideoGenerator {
                         'xi-api-key': this.elevenLabsKey
                     },
                     responseType: 'arraybuffer',
-                    timeout: 120000  // 2 minute timeout for long scripts
+                    timeout: 120000
                 }
             );
 
@@ -551,7 +464,7 @@ class CompleteVideoGenerator {
 
             // Prioritize videos over static images for better visual experience
             if (this.pexelsKey) {
-                assets.videos = await this.downloadPexelsVideos(category, Math.max(5, sceneCount));
+                assets.videos = await this.downloadPexelsVideos(category, Math.max(8, sceneCount));
                 console.log(`Downloaded ${assets.videos.length} video clips`);
             }
 
@@ -575,12 +488,12 @@ class CompleteVideoGenerator {
 
         try {
             const searchTerms = {
-                'personal-finance': ['business meeting', 'office work', 'money counting', 'calculator', 'financial planning'],
-                'investing': ['stock market', 'trading floor', 'charts graphs', 'business growth', 'financial data'],
-                'cryptocurrency': ['technology', 'computer screen', 'digital data', 'coding', 'futuristic'],
-                'artificial-intelligence': ['technology', 'robots', 'computer', 'data center', 'innovation'],
-                'startups': ['office space', 'teamwork', 'brainstorming', 'startup office', 'entrepreneurs'],
-                'business': ['business meeting', 'office', 'professional', 'corporate', 'workplace']
+                'personal-finance': ['business meeting', 'office work', 'money counting', 'calculator', 'financial planning', 'bank', 'investment'],
+                'investing': ['stock market', 'trading floor', 'charts graphs', 'business growth', 'financial data', 'analysis', 'portfolio'],
+                'cryptocurrency': ['technology', 'computer screen', 'digital data', 'coding', 'futuristic', 'blockchain', 'trading'],
+                'artificial-intelligence': ['technology', 'robots', 'computer', 'data center', 'innovation', 'automation', 'machine learning'],
+                'startups': ['office space', 'teamwork', 'brainstorming', 'startup office', 'entrepreneurs', 'collaboration', 'innovation'],
+                'business': ['business meeting', 'office', 'professional', 'corporate', 'workplace', 'conference', 'presentation']
             };
 
             const terms = searchTerms[category] || searchTerms['business'];
@@ -599,7 +512,8 @@ class CompleteVideoGenerator {
                         query: term,
                         per_page: Math.min(10, count - downloadedVideos.length),
                         orientation: 'landscape'
-                    }
+                    },
+                    timeout: 10000
                 });
 
                 if (response.data.videos && response.data.videos.length > 0) {
@@ -627,7 +541,7 @@ class CompleteVideoGenerator {
                                     videoResponse.data.pipe(writeStream);
                                     writeStream.on('finish', resolve);
                                     writeStream.on('error', reject);
-                                    setTimeout(reject, 30000); // 30 second timeout
+                                    setTimeout(reject, 30000);
                                 });
                                 
                                 downloadedVideos.push(filePath);
@@ -640,7 +554,7 @@ class CompleteVideoGenerator {
                 }
                 
                 // Small delay between API calls
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
             
             console.log(`Successfully downloaded ${downloadedVideos.length} videos`);
@@ -657,12 +571,12 @@ class CompleteVideoGenerator {
 
         try {
             const searchTerms = {
-                'personal-finance': 'business finance money',
-                'investing': 'investment growth chart',
-                'cryptocurrency': 'cryptocurrency bitcoin',
-                'artificial-intelligence': 'artificial intelligence',
-                'startups': 'startup entrepreneur',
-                'business': 'business professional'
+                'personal-finance': 'business finance money savings',
+                'investing': 'investment stock market growth',
+                'cryptocurrency': 'cryptocurrency bitcoin blockchain',
+                'artificial-intelligence': 'artificial intelligence technology',
+                'startups': 'startup entrepreneur business',
+                'business': 'business professional corporate'
             };
 
             const searchTerm = searchTerms[category] || 'business';
@@ -676,7 +590,8 @@ class CompleteVideoGenerator {
                     min_width: 1280,
                     per_page: count,
                     safesearch: 'true'
-                }
+                },
+                timeout: 10000
             });
 
             const downloadedImages = [];
@@ -688,16 +603,24 @@ class CompleteVideoGenerator {
                 const fileName = `pixabay_image_${Date.now()}_${i}.jpg`;
                 const filePath = path.join(this.tempDir, fileName);
                 
-                const imageResponse = await axios.get(imageUrl, { responseType: 'stream' });
-                const writeStream = fsSync.createWriteStream(filePath);
-                
-                await new Promise((resolve, reject) => {
-                    imageResponse.data.pipe(writeStream);
-                    writeStream.on('finish', resolve);
-                    writeStream.on('error', reject);
-                });
-                
-                downloadedImages.push(filePath);
+                try {
+                    const imageResponse = await axios.get(imageUrl, { 
+                        responseType: 'stream',
+                        timeout: 15000
+                    });
+                    const writeStream = fsSync.createWriteStream(filePath);
+                    
+                    await new Promise((resolve, reject) => {
+                        imageResponse.data.pipe(writeStream);
+                        writeStream.on('finish', resolve);
+                        writeStream.on('error', reject);
+                        setTimeout(reject, 15000);
+                    });
+                    
+                    downloadedImages.push(filePath);
+                } catch (downloadError) {
+                    console.error(`Failed to download image ${fileName}:`, downloadError.message);
+                }
             }
             
             return downloadedImages;
@@ -722,7 +645,7 @@ class CompleteVideoGenerator {
             } else if (mediaAssets.images.length > 0) {
                 await this.createVideoFromImages(audioFile, mediaAssets.images, outputPath, durationSeconds);
             } else {
-                await this.createSimpleVideo(audioFile, outputPath, durationSeconds);
+                await this.createSimpleVideoWithAudio(audioFile, outputPath, durationSeconds);
             }
             
             console.log('Video compilation completed');
@@ -730,6 +653,7 @@ class CompleteVideoGenerator {
             
         } catch (error) {
             console.error('Video compilation failed:', error);
+            // Fallback to audio file
             const fallbackPath = path.join(this.outputDir, `audio_${Date.now()}.mp3`);
             await fs.copyFile(audioFile, fallbackPath);
             return fallbackPath;
@@ -737,63 +661,97 @@ class CompleteVideoGenerator {
     }
 
     async createVideoWithClips(audioFile, videos, outputPath, duration) {
-        const videoList = videos.slice(0, 3);
-        const segmentDuration = duration / videoList.length;
+        const videoList = videos.slice(0, Math.min(8, videos.length));
         
-        let filterComplex = '';
-        let inputs = `-i "${audioFile}" `;
-        
-        for (let i = 0; i < videoList.length; i++) {
-            inputs += `-i "${videoList[i]}" `;
-            filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setpts=PTS-STARTPTS,trim=duration=${segmentDuration}[v${i}];`;
+        if (videoList.length === 0) {
+            throw new Error('No video clips available for compilation');
         }
         
-        filterComplex += videoList.map((_, i) => `[v${i}]`).join('') + `concat=n=${videoList.length}:v=1:a=0[outv]`;
+        console.log(`Creating video with ${videoList.length} clips for ${duration} seconds`);
         
-        const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -c:a aac -t ${duration} "${outputPath}"`;
-        
-        await execAsync(command);
+        try {
+            let filterComplex = '';
+            let inputs = `-i "${audioFile}" `;
+            
+            for (let i = 0; i < videoList.length; i++) {
+                inputs += `-i "${videoList[i]}" `;
+            }
+            
+            const segmentDuration = Math.max(4, duration / videoList.length);
+            
+            for (let i = 0; i < videoList.length; i++) {
+                filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setpts=PTS-STARTPTS,trim=duration=${segmentDuration},setpts=PTS-STARTPTS[v${i}];`;
+            }
+            
+            filterComplex += videoList.map((_, i) => `[v${i}]`).join('') + `concat=n=${videoList.length}:v=1:a=0[outv]`;
+            
+            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0,highpass=f=80,lowpass=f=15000" -t ${duration} "${outputPath}"`;
+            
+            console.log('Executing FFmpeg video compilation...');
+            await execAsync(command, { timeout: 300000 });
+            console.log('Video compilation with clips completed successfully');
+            
+        } catch (error) {
+            console.error('Video compilation with clips failed:', error);
+            await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
+        }
     }
 
     async createVideoFromImages(audioFile, images, outputPath, duration) {
-        const imageList = images.slice(0, 5);
-        const imageDuration = duration / imageList.length;
-        
-        let filterComplex = '';
-        let inputs = `-i "${audioFile}" `;
-        
-        for (let i = 0; i < imageList.length; i++) {
-            inputs += `-loop 1 -t ${imageDuration} -i "${imageList[i]}" `;
-            filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,fade=t=in:st=0:d=0.5,fade=t=out:st=${imageDuration - 0.5}:d=0.5[v${i}];`;
+        try {
+            console.log(`Creating slideshow video with ${images.length} images`);
+            
+            const imageDuration = Math.max(3, duration / images.length);
+            let filterComplex = '';
+            let inputs = `-i "${audioFile}" `;
+            
+            for (let i = 0; i < images.length; i++) {
+                inputs += `-loop 1 -t ${imageDuration} -i "${images[i]}" `;
+            }
+            
+            for (let i = 0; i < images.length; i++) {
+                filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,fade=t=in:st=0:d=0.5,fade=t=out:st=${imageDuration - 0.5}:d=0.5[v${i}];`;
+            }
+            
+            filterComplex += images.map((_, i) => `[v${i}]`).join('') + `concat=n=${images.length}:v=1:a=0[outv]`;
+            
+            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0,highpass=f=80,lowpass=f=15000" -t ${duration} "${outputPath}"`;
+            
+            await execAsync(command, { timeout: 300000 });
+            console.log('Image slideshow video created successfully');
+            
+        } catch (error) {
+            console.error('Image slideshow creation failed:', error);
+            await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
         }
-        
-        filterComplex += imageList.map((_, i) => `[v${i}]`).join('') + `concat=n=${imageList.length}:v=1:a=0[outv]`;
-        
-        const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -c:a aac -shortest "${outputPath}"`;
-        
-        await execAsync(command);
     }
 
-    async createSimpleVideo(audioFile, outputPath, duration) {
-        const command = `ffmpeg -y -i "${audioFile}" -f lavfi -i "color=c=#1a1a2e:s=1920x1080:d=${duration},geq=r='255*sin(2*PI*T/10)':g='255*sin(2*PI*T/10 + 2*PI/3)':b='255*sin(2*PI*T/10 + 4*PI/3)'" -map 1:v -map 0:a -c:v libx264 -c:a aac -shortest "${outputPath}"`;
-        
-        await execAsync(command);
+    async createSimpleVideoWithAudio(audioFile, outputPath, duration) {
+        try {
+            console.log('Creating simple video with gradient background');
+            
+            const command = `ffmpeg -y -i "${audioFile}" -f lavfi -i "color=gradient=blue:navy:1920:1080:d=${duration}" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0,highpass=f=80,lowpass=f=15000" -t ${duration} -shortest "${outputPath}"`;
+            
+            await execAsync(command, { timeout: 180000 });
+            console.log('Simple video with audio created successfully');
+            
+        } catch (error) {
+            console.error('Simple video creation failed:', error);
+            throw error;
+        }
     }
 
     async getFileSize(filePath) {
         try {
             const stats = await fs.stat(filePath);
-            return Math.round(stats.size / 1024 / 1024) + ' MB';
-        } catch {
-            return 'Unknown';
+            return Math.round(stats.size / 1024 / 1024 * 100) / 100; // MB
+        } catch (error) {
+            return 0;
         }
     }
 }
 
-// COMPLETELY FIXED SECURITY CONFIGURATION
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
-
+// Modern Encryption System
 class SecureVault {
     static encrypt(text) {
         try {
@@ -805,7 +763,6 @@ class SecureVault {
             let encrypted = cipher.update(text, 'utf8', 'hex');
             encrypted += cipher.final('hex');
             
-            // Format: iv:encrypted_data
             return iv.toString('hex') + ':' + encrypted;
         } catch (error) {
             console.error('Encryption failed:', error);
@@ -817,11 +774,10 @@ class SecureVault {
         try {
             const algorithm = 'aes-256-cbc';
             const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
-            
-            // Split IV and encrypted data
             const parts = encryptedData.split(':');
+            
             if (parts.length !== 2) {
-                console.error('Invalid encrypted data format:', encryptedData);
+                console.error('Invalid encrypted data format');
                 return null;
             }
             
@@ -834,55 +790,83 @@ class SecureVault {
             
             return decrypted;
         } catch (error) {
-            console.error('Decryption failed:', error.message);
+            console.error('Decryption failed:', error);
             return null;
         }
     }
 }
 
-// Enhanced API key retrieval with fallback
-async function getDecryptedApiKeys() {
-    if (!db) {
-        console.log('No database connection for API keys');
-        return {};
-    }
-    
-    try {
-        const apiKeys = await db.collection('apikeys').find({ isActive: true }).toArray();
-        const decryptedKeys = {};
-        
-        console.log(`Found ${apiKeys.length} API keys in database`);
-        
-        for (const key of apiKeys) {
-            try {
-                console.log(`Attempting to decrypt ${key.service} key`);
-                const decryptedValue = SecureVault.decrypt(key.encryptedKey);
-                
-                if (decryptedValue) {
-                    decryptedKeys[key.service] = decryptedValue;
-                    console.log(`✅ Successfully decrypted ${key.service} key`);
-                } else {
-                    console.error(`❌ Failed to decrypt ${key.service} key - invalid format or corrupted`);
-                }
-            } catch (error) {
-                console.error(`❌ Error decrypting ${key.service} key:`, error.message);
-            }
-        }
-        
-        console.log(`Successfully decrypted ${Object.keys(decryptedKeys).length} API keys:`, Object.keys(decryptedKeys));
-        return decryptedKeys;
-    } catch (error) {
-        console.error('Failed to get API keys from database:', error);
-        return {};
-    }
-}
-
-// ROBUST AUTHENTICATION SYSTEM
+// Robust Authentication Manager
 class AuthenticationManager {
-    constructor(database) {
+    constructor() {
+        this.adminEmail = ADMIN_EMAIL;
+        this.adminPasswordPlain = ADMIN_PASSWORD;
+        this.db = null;
+    }
+
+    setDatabase(database) {
         this.db = database;
-        this.adminEmail = process.env.ADMIN_EMAIL || 'casteroai001@gmail.com';
-        this.adminPasswordPlain = process.env.ADMIN_PASSWORD || 'admin123'; // Plain text for now
+    }
+
+    async authenticateUser(email, password) {
+        try {
+            console.log(`Login attempt for: ${email}`);
+            
+            // Admin authentication with environment variable fallback
+            if (email === this.adminEmail) {
+                // Try direct password comparison first
+                if (password === this.adminPasswordPlain) {
+                    console.log('Admin authenticated via environment variable');
+                    return {
+                        email: this.adminEmail,
+                        role: 'admin',
+                        plan: 'enterprise',
+                        authenticated: true
+                    };
+                }
+                
+                // Try database authentication
+                if (this.db) {
+                    const adminUser = await this.db.collection('users').findOne({ 
+                        email: this.adminEmail,
+                        role: 'admin'
+                    });
+                    
+                    if (adminUser && adminUser.password) {
+                        const validPassword = await bcrypt.compare(password, adminUser.password);
+                        if (validPassword) {
+                            console.log('Admin authenticated via database');
+                            return {
+                                email: adminUser.email,
+                                role: adminUser.role,
+                                plan: adminUser.plan || 'enterprise',
+                                authenticated: true
+                            };
+                        }
+                    }
+                }
+            }
+            
+            // Regular user authentication
+            if (this.db) {
+                const user = await this.db.collection('users').findOne({ email });
+                if (user && await bcrypt.compare(password, user.password)) {
+                    console.log(`User authenticated: ${email}`);
+                    return {
+                        email: user.email,
+                        role: user.role || 'user',
+                        plan: user.plan || 'free',
+                        authenticated: true
+                    };
+                }
+            }
+            
+            throw new Error('Invalid credentials');
+            
+        } catch (error) {
+            console.error('Authentication error:', error);
+            throw error;
+        }
     }
 
     async initializeAdminUser() {
@@ -892,7 +876,7 @@ class AuthenticationManager {
         }
 
         try {
-            // Check if ANY user with this email exists (regardless of role)
+            // Check if admin already exists by email (any role)
             const existingUser = await this.db.collection('users').findOne({ 
                 email: this.adminEmail
             });
@@ -900,31 +884,28 @@ class AuthenticationManager {
             if (existingUser) {
                 console.log('User with admin email already exists - updating to admin role and password');
                 
-                // Update existing user to be admin with new password
+                // Update existing user to admin role with new password
                 const hashedPassword = await bcrypt.hash(this.adminPasswordPlain, 12);
                 
-                const updateResult = await this.db.collection('users').updateOne(
+                await this.db.collection('users').updateOne(
                     { email: this.adminEmail },
                     { 
                         $set: { 
                             password: hashedPassword,
                             role: 'admin',
                             plan: 'enterprise',
-                            videosUsed: 0,
                             videosLimit: 999999,
                             isActive: true,
-                            updatedAt: new Date(),
-                            compliance: 'terms_compliant'
+                            updatedAt: new Date()
                         }
                     }
                 );
                 
-                console.log('Existing user updated to admin successfully:', updateResult.modifiedCount, 'documents modified');
+                console.log('Admin user updated successfully');
                 return existingUser;
             }
 
-            // Only create new user if email doesn't exist at all
-            console.log('No user found with admin email, creating new admin user');
+            // Create new admin user
             const hashedPassword = await bcrypt.hash(this.adminPasswordPlain, 12);
             
             const adminUser = {
@@ -940,187 +921,149 @@ class AuthenticationManager {
             };
 
             const result = await this.db.collection('users').insertOne(adminUser);
-            console.log('New admin user created successfully with ID:', result.insertedId);
+            console.log('Admin user created successfully with ID:', result.insertedId);
             
             return { ...adminUser, _id: result.insertedId };
             
         } catch (error) {
-            // If it's still a duplicate key error, just log and continue
             if (error.code === 11000) {
                 console.log('Admin user already exists (duplicate key), continuing with authentication...');
                 return null;
             }
-            
             console.error('Failed to initialize admin user:', error);
             return null;
         }
     }
+}
 
-    async authenticateUser(email, password) {
-        if (!email || !password) {
-            throw new Error('Email and password are required');
-        }
-
-        // Special handling for admin - try direct environment variable first
-        if (email === this.adminEmail) {
-            // First try the plain text password from environment
-            if (password === this.adminPasswordPlain) {
-                return this.createAdminUserObject();
+// Enhanced API key management
+async function getDecryptedApiKeys() {
+    if (!db) return {};
+    
+    try {
+        const apiKeys = await db.collection('apikeys').find({ isActive: true }).toArray();
+        const decryptedKeys = {};
+        let successCount = 0;
+        
+        for (const key of apiKeys) {
+            try {
+                const decryptedKey = SecureVault.decrypt(key.encryptedKey);
+                if (decryptedKey) {
+                    decryptedKeys[key.service] = decryptedKey;
+                    successCount++;
+                } else {
+                    console.error(`Failed to decrypt ${key.service} key`);
+                }
+            } catch (error) {
+                console.error(`Error decrypting ${key.service} key:`, error.message);
             }
         }
-
-        // Database authentication for all users (including admin with hashed password)
-        if (!this.db) {
-            throw new Error('Database not available');
-        }
-
-        const user = await this.db.collection('users').findOne({ email });
-        if (!user) {
-            throw new Error('Invalid credentials');
-        }
-
-        if (!user.isActive) {
-            throw new Error('Account suspended');
-        }
-
-        const validPassword = await bcrypt.compare(password, user.password);
-        if (!validPassword) {
-            throw new Error('Invalid credentials');
-        }
-
-        return user;
-    }
-
-    createAdminUserObject() {
-        return {
-            _id: new ObjectId(),
-            email: this.adminEmail,
-            role: 'admin',
-            plan: 'enterprise',
-            videosUsed: 0,
-            videosLimit: 999999,
-            isActive: true,
-            createdAt: new Date()
-        };
-    }
-
-    generateToken(user) {
-        return jwt.sign(
-            {
-                _id: user._id,
-                email: user.email,
-                role: user.role,
-                plan: user.plan,
-                videosUsed: user.videosUsed,
-                videosLimit: user.videosLimit
-            },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        
+        console.log(`Successfully decrypted ${successCount} API keys`);
+        return decryptedKeys;
+        
+    } catch (error) {
+        console.error('Failed to get API keys:', error);
+        return {};
     }
 }
 
-// Middleware Configuration
+// Middleware
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:"],
-        },
-    },
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
 }));
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
-    credentials: true
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate Limiting
-const createRateLimit = (windowMs, max, message) => rateLimit({
-    windowMs,
-    max,
-    message: { error: message },
-    trustProxy: true,
+// Rate limiting
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts per window
+    message: { error: 'Too many authentication attempts, please try again later' },
     standardHeaders: true,
-    legacyHeaders: false,
+    legacyHeaders: false
 });
 
-app.use('/api/auth', createRateLimit(15 * 60 * 1000, 10, 'Too many authentication attempts'));
-app.use('/api/videos', createRateLimit(60 * 60 * 1000, 10, 'Video generation limit reached'));
-app.use('/api/', createRateLimit(15 * 60 * 1000, 100, 'Too many API requests'));
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false
+});
 
-// Database Connection and Initialization
-let db = null;
-let authManager = null;
-const MONGODB_URI = process.env.MONGODB_URI;
+app.use('/api/auth', authLimiter);
+app.use('/api', generalLimiter);
 
+// Database connection
 async function connectToDatabase() {
-    if (!MONGODB_URI) {
-        console.log('Running in demo mode (database will be connected later)');
-        return null;
-    }
-    
     try {
-        console.log('MongoDB URI configured: YES');
+        if (!MONGODB_URI) {
+            throw new Error('MONGODB_URI environment variable is not set');
+        }
+
         console.log('Connecting to MongoDB...');
-        
-        const client = new MongoClient(MONGODB_URI);
+        const client = new MongoClient(MONGODB_URI, {
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+        });
+
         await client.connect();
-        
-        db = client.db();
+        db = client.db('ai_hollywood_studio');
         
         console.log('MongoDB connected successfully');
-        console.log('Database name:', db.databaseName);
         
         // Initialize authentication manager
-        authManager = new AuthenticationManager(db);
+        authManager = new AuthenticationManager();
+        authManager.setDatabase(db);
         
         await initializeDatabase();
-        return db;
+        
     } catch (error) {
-        console.error('MongoDB connection failed:', error.message);
-        console.log('Continuing in demo mode...');
-        // Create fallback auth manager for demo mode
-        authManager = new AuthenticationManager(null);
-        return null;
+        console.error('Database connection failed:', error);
+        throw error;
     }
 }
 
 async function initializeDatabase() {
-    if (!db || !authManager) return;
-    
     try {
-        // Create admin user
-        await authManager.initializeAdminUser();
+        console.log('Initializing database...');
         
         // Create indexes
-        await db.collection('apikeys').createIndex({ service: 1 }, { unique: true });
         await db.collection('users').createIndex({ email: 1 }, { unique: true });
-        await db.collection('videologs').createIndex({ userId: 1, createdAt: -1 });
+        await db.collection('apikeys').createIndex({ service: 1 }, { unique: true });
         
-        console.log('Database indexes created');
+        // Initialize admin user
+        await authManager.initializeAdminUser();
+        
+        console.log('Database initialization completed');
+        
     } catch (error) {
         console.error('Database initialization failed:', error);
     }
 }
 
-// Authentication Middleware
+// Authentication middleware
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    
+
     if (!token) {
         return res.status(401).json({ error: 'Access token required' });
     }
-    
+
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
-            return res.status(403).json({ error: 'Invalid or expired token' });
+            return res.status(403).json({ error: 'Invalid token' });
         }
         req.user = user;
         next();
@@ -1128,94 +1071,359 @@ function authenticateToken(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-    if (req.user.role !== 'admin') {
+    if (!req.user || req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Admin access required' });
     }
     next();
 }
 
-// Helper Functions
-function getPlanLimits(plan) {
-    const limits = {
-        free: { videos: 2, quality: '720p', watermark: true },
-        professional: { videos: 20, quality: '1080p', watermark: false },
-        agency: { videos: 100, quality: '4K', watermark: false },
-        enterprise: { videos: 999999, quality: '4K', watermark: false }
-    };
-    return limits[plan] || limits.free;
-}
-
-function getExportQuality(plan) {
-    return getPlanLimits(plan).quality;
-}
-
-function getWatermarkStatus(plan) {
-    return getPlanLimits(plan).watermark;
-}
-
-async function getDecryptedApiKeys() {
-    if (!db) return {};
-    
-    try {
-        const apiKeys = await db.collection('apikeys').find({ isActive: true }).toArray();
-        const decryptedKeys = {};
-        
-        for (const key of apiKeys) {
-            try {
-                decryptedKeys[key.service] = SecureVault.decrypt(key.encryptedKey);
-            } catch (error) {
-                console.error(`Failed to decrypt ${key.service} key`);
-            }
-        }
-        
-        return decryptedKeys;
-    } catch (error) {
-        console.error('Failed to get API keys:', error);
-        return {};
-    }
-}
-
-// API Routes
-
-// Health Check
+// Health check endpoint
 app.get('/api/health', async (req, res) => {
-    const mongoConfigured = !!MONGODB_URI;
-    const connected = !!db;
-    
-    const healthData = {
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0',
-        environment: process.env.NODE_ENV || 'development',
-        compliance: 'terms_compliant',
-        message: 'AI Hollywood Studio Backend is running!'
-    };
-    
-    if (mongoConfigured) {
-        healthData.database = connected ? 'connected' : 'disconnected';
-        healthData.mongoConfigured = true;
-    } else {
-        healthData.database = 'demo_mode';
-        healthData.mongoConfigured = false;
-    }
-    
-    if (authManager) {
-        healthData.adminEmail = authManager.adminEmail;
-        healthData.authenticationSystem = 'robust';
-    }
-    
-    // Check FFmpeg availability
     try {
-        await execAsync('ffmpeg -version');
-        healthData.ffmpeg = 'available';
-    } catch {
-        healthData.ffmpeg = 'not_available';
+        // Check FFmpeg availability
+        let ffmpegStatus = 'not_available';
+        try {
+            await execAsync('ffmpeg -version');
+            ffmpegStatus = 'available';
+        } catch (error) {
+            ffmpegStatus = 'not_available';
+        }
+
+        const healthStatus = {
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            version: '1.0.0',
+            environment: process.env.NODE_ENV || 'production',
+            compliance: 'terms_compliant',
+            message: 'AI Hollywood Studio Backend is running!',
+            database: db ? 'connected' : 'disconnected',
+            mongoConfigured: !!MONGODB_URI,
+            adminEmail: ADMIN_EMAIL,
+            ffmpeg: ffmpegStatus
+        };
+
+        res.json(healthStatus);
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'unhealthy', 
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
     }
-    
-    res.json(healthData);
 });
 
-// Temporary debug route - remove after fixing
+// Demo endpoint for authentication status
+app.get('/api/demo/status', (req, res) => {
+    res.json({
+        message: 'AI Hollywood Studio Backend Demo',
+        timestamp: new Date().toISOString(),
+        authentication: {
+            adminEmail: ADMIN_EMAIL,
+            adminPassword: ADMIN_PASSWORD,
+            system: 'Robust with fallback'
+        },
+        features: [
+            'Script Generation',
+            'ElevenLabs Voiceover',
+            'Pexels Stock Videos',
+            'Pixabay Stock Images',
+            'FFmpeg Compilation'
+        ]
+    });
+});
+
+// Authentication routes
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { email, password, plan = 'free' } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        if (!db) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+
+        // Check if user already exists
+        const existingUser = await db.collection('users').findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: 'User already exists' });
+        }
+
+        // Hash password and create user
+        const hashedPassword = await bcrypt.hash(password, 12);
+        
+        const videoLimits = {
+            'free': 3,
+            'pro': 50,
+            'enterprise': 999999
+        };
+
+        const userData = {
+            email,
+            password: hashedPassword,
+            role: 'user',
+            plan,
+            videosUsed: 0,
+            videosLimit: videoLimits[plan] || videoLimits['free'],
+            isActive: true,
+            createdAt: new Date(),
+            compliance: 'terms_compliant'
+        };
+
+        const result = await db.collection('users').insertOne(userData);
+        
+        // Generate token
+        const token = jwt.sign(
+            { 
+                email, 
+                role: userData.role, 
+                userId: result.insertedId,
+                plan: userData.plan 
+            }, 
+            JWT_SECRET, 
+            { expiresIn: '7d' }
+        );
+
+        res.status(201).json({
+            success: true,
+            message: 'User registered successfully',
+            token,
+            user: {
+                email,
+                role: userData.role,
+                plan: userData.plan,
+                videosLimit: userData.videosLimit
+            }
+        });
+
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ error: 'Registration failed' });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        const user = await authManager.authenticateUser(email, password);
+        
+        const token = jwt.sign(
+            { 
+                email: user.email, 
+                role: user.role, 
+                plan: user.plan 
+            }, 
+            JWT_SECRET, 
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            success: true,
+            message: 'Login successful',
+            token,
+            user: {
+                email: user.email,
+                role: user.role,
+                plan: user.plan
+            }
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(401).json({ error: 'Invalid credentials' });
+    }
+});
+
+// Video generation endpoint
+app.post('/api/videos/generate', authenticateToken, async (req, res) => {
+    try {
+        console.log(`Starting video generation for user: ${req.user.email}`);
+        
+        const { title, category, duration, tone, voiceStyle, visualStyle } = req.body;
+        
+        console.log(`Video details: ${title}, ${category}, ${duration} minutes`);
+
+        if (!title || !category || !duration) {
+            return res.status(400).json({ error: 'Title, category, and duration are required' });
+        }
+
+        // Get API keys
+        const apiKeys = await getDecryptedApiKeys();
+        
+        if (Object.keys(apiKeys).length === 0) {
+            return res.status(500).json({ 
+                error: 'API keys not configured. Please contact administrator.' 
+            });
+        }
+
+        // Initialize video generator
+        const generator = new CompleteVideoGenerator(apiKeys);
+        
+        // Generate video
+        const result = await generator.generateVideo({
+            title,
+            category,
+            duration: parseInt(duration),
+            tone: tone || 'professional',
+            voiceStyle: voiceStyle || 'professional-male',
+            visualStyle: visualStyle || 'corporate'
+        });
+
+        console.log(`Video generated successfully: ${title}`);
+
+        res.json({
+            success: true,
+            message: 'Video generated successfully with complete system',
+            video: result,
+            downloadUrl: result.downloadUrl
+        });
+
+    } catch (error) {
+        console.error('Video generation error:', error);
+        res.status(500).json({ 
+            error: 'Video generation failed', 
+            details: error.message 
+        });
+    }
+});
+
+// API key management endpoints
+app.get('/api/admin/apikeys', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        if (!db) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+
+        const apiKeys = await db.collection('apikeys').find({ isActive: true }).toArray();
+        
+        const sanitizedKeys = apiKeys.map(key => ({
+            _id: key._id,
+            service: key.service,
+            createdAt: key.createdAt,
+            isActive: key.isActive,
+            masked: key.encryptedKey ? `${key.service}_${'*'.repeat(32)}` : 'Not set'
+        }));
+
+        res.json({ success: true, apiKeys: sanitizedKeys });
+
+    } catch (error) {
+        console.error('Failed to fetch API keys:', error);
+        res.status(500).json({ error: 'Failed to fetch API keys' });
+    }
+});
+
+app.post('/api/admin/apikeys', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { service, apiKey } = req.body;
+
+        if (!service || !apiKey) {
+            return res.status(400).json({ error: 'Service and API key are required' });
+        }
+
+        if (!db) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+
+        // Encrypt the API key
+        const encryptedKey = SecureVault.encrypt(apiKey);
+
+        // Update or insert API key
+        await db.collection('apikeys').updateOne(
+            { service },
+            {
+                $set: {
+                    service,
+                    encryptedKey,
+                    isActive: true,
+                    updatedAt: new Date()
+                },
+                $setOnInsert: {
+                    createdAt: new Date()
+                }
+            },
+            { upsert: true }
+        );
+
+        console.log(`API key updated for service: ${service}`);
+
+        res.json({
+            success: true,
+            message: `API key for ${service} updated successfully`
+        });
+
+    } catch (error) {
+        console.error('Failed to save API key:', error);
+        res.status(500).json({ error: 'Failed to save API key' });
+    }
+});
+
+app.delete('/api/admin/apikeys/:service', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { service } = req.params;
+
+        if (!db) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+
+        await db.collection('apikeys').updateOne(
+            { service },
+            { $set: { isActive: false, deactivatedAt: new Date() } }
+        );
+
+        console.log(`API key deactivated for service: ${service}`);
+
+        res.json({
+            success: true,
+            message: `API key for ${service} deactivated successfully`
+        });
+
+    } catch (error) {
+        console.error('Failed to delete API key:', error);
+        res.status(500).json({ error: 'Failed to delete API key' });
+    }
+});
+
+// File download endpoint
+app.get('/download/:filename', (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const filePath = path.join(__dirname, 'generated_videos', filename);
+        
+        // Security check
+        if (!filename || filename.includes('..') || filename.includes('/')) {
+            return res.status(400).json({ error: 'Invalid filename' });
+        }
+        
+        // Check if file exists
+        if (!fsSync.existsSync(filePath)) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        
+        // Set appropriate headers
+        const ext = path.extname(filename).toLowerCase();
+        const contentType = ext === '.mp4' ? 'video/mp4' : 'audio/mpeg';
+        
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        
+        // Stream the file
+        const fileStream = fsSync.createReadStream(filePath);
+        fileStream.pipe(res);
+        
+    } catch (error) {
+        console.error('Download error:', error);
+        res.status(500).json({ error: 'Download failed' });
+    }
+});
+
+// Debug endpoints (remove in production)
 app.get('/api/debug/admin', async (req, res) => {
     if (db && authManager) {
         const user = await db.collection('users').findOne({ email: authManager.adminEmail });
@@ -1226,27 +1434,21 @@ app.get('/api/debug/admin', async (req, res) => {
             adminPassword: authManager.adminPasswordPlain,
             adminEmail: authManager.adminEmail,
             environmentVariables: {
-                ADMIN_PASSWORD: !!process.env.ADMIN_PASSWORD,
-                ADMIN_EMAIL: !!process.env.ADMIN_EMAIL
+                ADMIN_PASSWORD: !!ADMIN_PASSWORD,
+                ADMIN_EMAIL: !!ADMIN_EMAIL
             }
         });
     } else {
-        res.json({ 
-            error: 'No database connection',
-            authManager: !!authManager,
-            adminPassword: authManager?.adminPasswordPlain,
-            adminEmail: authManager?.adminEmail
-        });
+        res.json({ error: 'No database connection' });
     }
 });
 
-// Temporary fix route - reset admin password
 app.post('/api/debug/reset-admin', async (req, res) => {
-    if (!db || !authManager) {
-        return res.status(503).json({ error: 'Database not available' });
-    }
-    
     try {
+        if (!db || !authManager) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+
         const hashedPassword = await bcrypt.hash(authManager.adminPasswordPlain, 12);
         
         const result = await db.collection('users').updateOne(
@@ -1255,504 +1457,36 @@ app.post('/api/debug/reset-admin', async (req, res) => {
                 $set: { 
                     password: hashedPassword,
                     role: 'admin',
-                    plan: 'enterprise',
-                    isActive: true,
                     updatedAt: new Date()
                 }
             }
         );
-        
+
         res.json({
             success: true,
             message: 'Admin password reset successfully',
             modifiedCount: result.modifiedCount,
             newPassword: authManager.adminPasswordPlain
         });
-        
+
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Password reset failed:', error);
+        res.status(500).json({ error: 'Password reset failed' });
     }
 });
 
-// Demo Status
-app.get('/api/demo/status', (req, res) => {
-    res.json({
-        message: 'AI Hollywood Studio Backend is running!',
-        features: [
-            'Robust authentication system',
-            'Security systems active',
-            'Video generation ready',
-            'Admin access configured',
-            'API key encryption enabled',
-            'Rate limiting active',
-            'FFmpeg video compilation'
-        ],
-        authentication: {
-            adminEmail: authManager ? authManager.adminEmail : 'Not configured',
-            adminPassword: 'admin123',
-            system: 'Robust with fallback'
-        }
+// Error handling middleware
+app.use((error, req, res, next) => {
+    console.error('Server error:', error);
+    res.status(500).json({ 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
     });
 });
 
-// ROBUST AUTHENTICATION ROUTES
-app.post('/api/auth/register', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password required' });
-        }
-        
-        if (password.length < 8) {
-            return res.status(400).json({ error: 'Password must be at least 8 characters' });
-        }
-        
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
-        }
-        
-        const existingUser = await db.collection('users').findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ error: 'User already exists' });
-        }
-        
-        const hashedPassword = await bcrypt.hash(password, 12);
-        const planLimits = getPlanLimits('free');
-        
-        const newUser = {
-            email,
-            password: hashedPassword,
-            role: 'user',
-            plan: 'free',
-            videosUsed: 0,
-            videosLimit: planLimits.videos,
-            isActive: true,
-            createdAt: new Date(),
-            compliance: 'terms_compliant'
-        };
-        
-        const result = await db.collection('users').insertOne(newUser);
-        
-        const token = authManager.generateToken({
-            _id: result.insertedId,
-            email,
-            role: 'user',
-            plan: 'free',
-            videosUsed: 0,
-            videosLimit: planLimits.videos
-        });
-        
-        console.log(`New user registered: ${email}`);
-        
-        res.status(201).json({
-            success: true,
-            token,
-            user: {
-                email,
-                plan: 'free',
-                videosUsed: 0,
-                videosLimit: planLimits.videos,
-                exportQuality: getExportQuality('free'),
-                watermark: getWatermarkStatus('free')
-            }
-        });
-        
-    } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ error: 'Registration failed' });
-    }
-});
-
-// ROBUST LOGIN ROUTE
-app.post('/api/auth/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        
-        console.log(`Login attempt for: ${email}`);
-        
-        if (!authManager) {
-            return res.status(503).json({ error: 'Authentication system not initialized' });
-        }
-        
-        // Use the robust authentication manager
-        const user = await authManager.authenticateUser(email, password);
-        
-        // Generate JWT token
-        const token = authManager.generateToken(user);
-        
-        console.log(`Login successful for: ${email} (Role: ${user.role})`);
-        
-        res.json({
-            success: true,
-            token,
-            user: {
-                email: user.email,
-                role: user.role,
-                plan: user.plan,
-                videosUsed: user.videosUsed,
-                videosLimit: user.videosLimit,
-                exportQuality: getExportQuality(user.plan),
-                watermark: getWatermarkStatus(user.plan)
-            }
-        });
-        
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(401).json({ error: error.message });
-    }
-});
-
-// Video Generation Route
-app.post('/api/videos/generate', authenticateToken, async (req, res) => {
-    try {
-        const { title, category, duration, tone, voiceStyle, visualStyle } = req.body;
-        
-        if (req.user.videosUsed >= req.user.videosLimit && req.user.plan !== 'enterprise') {
-            return res.status(403).json({ error: 'Video limit reached for your plan' });
-        }
-
-        const startTime = Date.now();
-        console.log(`Starting video generation for user: ${req.user.email}`);
-
-        const apiKeys = await getDecryptedApiKeys();
-        
-        if (!apiKeys.elevenlabs) {
-            return res.status(400).json({ error: 'ElevenLabs API key not configured. Please add it in the admin dashboard.' });
-        }
-
-        const generator = new CompleteVideoGenerator(apiKeys);
-        
-        const videoResult = await generator.generateVideo({
-            title,
-            category, 
-            duration,
-            tone,
-            voiceStyle,
-            visualStyle
-        });
-
-        const processingTime = Date.now() - startTime;
-
-        if (db) {
-            await db.collection('users').updateOne(
-                { _id: req.user._id },
-                { $inc: { videosUsed: 1 } }
-            );
-
-            const videoLog = {
-                userId: req.user._id,
-                title,
-                category,
-                duration,
-                plan: req.user.plan,
-                exportQuality: getExportQuality(req.user.plan),
-                method: 'complete_video_generation',
-                processingTime,
-                success: videoResult.success,
-                fileSize: videoResult.fileSize,
-                compliance: 'terms_compliant',
-                createdAt: new Date()
-            };
-
-            await db.collection('videologs').insertOne(videoLog);
-        }
-
-        console.log(`Video generated successfully: ${title} for ${req.user.email}`);
-
-        res.json({
-            success: true,
-            video: {
-                title,
-                duration,
-                exportQuality: getExportQuality(req.user.plan),
-                watermark: getWatermarkStatus(req.user.plan),
-                downloadUrl: videoResult.downloadUrl,
-                processingTime,
-                fileSize: videoResult.fileSize,
-                method: 'complete_video_generation',
-                compliance: 'terms_compliant'
-            },
-            user: {
-                videosUsed: req.user.videosUsed + 1,
-                videosLimit: req.user.videosLimit
-            }
-        });
-
-    } catch (error) {
-        console.error('Video generation error:', error);
-        res.status(500).json({ error: 'Video generation failed: ' + error.message });
-    }
-});
-
-// Serve generated video files
-app.get('/download/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'generated_videos', filename);
-    
-    res.download(filePath, (err) => {
-        if (err) {
-            console.error('Download failed:', err);
-            res.status(404).json({ error: 'Video file not found' });
-        }
-    });
-});
-
-// Admin Routes
-app.post('/api/admin/keys', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { service, apiKey } = req.body;
-        
-        if (!service || !apiKey) {
-            return res.status(400).json({ error: 'Service and API key required' });
-        }
-        
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
-        }
-        
-        const encryptedKey = SecureVault.encrypt(apiKey);
-        
-        await db.collection('apikeys').updateOne(
-            { service },
-            {
-                $set: {
-                    service,
-                    encryptedKey,
-                    isActive: true,
-                    updatedAt: new Date(),
-                    updatedBy: req.user.email
-                }
-            },
-            { upsert: true }
-        );
-        
-        console.log(`API key updated for service: ${service}`);
-        
-        res.json({
-            success: true,
-            message: `${service} API key updated successfully`
-        });
-        
-    } catch (error) {
-        console.error('API key update error:', error);
-        res.status(500).json({ error: 'Failed to update API key' });
-    }
-});
-
-app.get('/api/admin/keys', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
-        }
-        
-        const apiKeys = await db.collection('apikeys').find(
-            { isActive: true },
-            { projection: { service: 1, updatedAt: 1, updatedBy: 1 } }
-        ).toArray();
-        
-        res.json({
-            success: true,
-            keys: apiKeys.map(key => ({
-                service: key.service,
-                status: 'active',
-                lastUpdated: key.updatedAt,
-                updatedBy: key.updatedBy
-            }))
-        });
-        
-    } catch (error) {
-        console.error('API keys fetch error:', error);
-        res.status(500).json({ error: 'Failed to fetch API keys' });
-    }
-});
-
-app.delete('/api/admin/keys/:service', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { service } = req.params;
-        
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
-        }
-        
-        await db.collection('apikeys').updateOne(
-            { service },
-            { $set: { isActive: false, deletedAt: new Date(), deletedBy: req.user.email } }
-        );
-        
-        console.log(`API key deactivated for service: ${service}`);
-        
-        res.json({
-            success: true,
-            message: `${service} API key deactivated`
-        });
-        
-    } catch (error) {
-        console.error('API key deletion error:', error);
-        res.status(500).json({ error: 'Failed to delete API key' });
-    }
-});
-
-// Admin Dashboard
-app.get('/api/admin/dashboard', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        if (db) {
-            const stats = await Promise.all([
-                db.collection('users').countDocuments(),
-                db.collection('users').countDocuments({ plan: 'free' }),
-                db.collection('users').countDocuments({ plan: 'professional' }),
-                db.collection('users').countDocuments({ plan: 'agency' }),
-                db.collection('videologs').countDocuments(),
-                db.collection('videologs').countDocuments({ success: true }),
-                db.collection('apikeys').countDocuments({ isActive: true })
-            ]);
-            
-            const [totalUsers, freeUsers, proUsers, agencyUsers, totalVideos, successfulVideos, activeApiKeys] = stats;
-            
-            const recentVideos = await db.collection('videologs')
-                .find({}, { projection: { title: 1, createdAt: 1, success: 1, plan: 1 } })
-                .sort({ createdAt: -1 })
-                .limit(5)
-                .toArray();
-            
-            res.json({
-                success: true,
-                stats: {
-                    totalUsers,
-                    planDistribution: {
-                        free: freeUsers,
-                        professional: proUsers,
-                        agency: agencyUsers
-                    },
-                    totalVideos,
-                    successfulVideos,
-                    successRate: totalVideos > 0 ? Math.round((successfulVideos / totalVideos) * 100) : 0,
-                    activeApiKeys,
-                    revenue: {
-                        monthly: (proUsers * 89) + (agencyUsers * 249),
-                        projected: ((proUsers * 89) + (agencyUsers * 249)) * 12
-                    }
-                },
-                recentActivity: recentVideos,
-                compliance: 'terms_compliant'
-            });
-        } else {
-            res.json({
-                success: true,
-                stats: {
-                    totalUsers: 0,
-                    planDistribution: { free: 0, professional: 0, agency: 0 },
-                    totalVideos: 0,
-                    successfulVideos: 0,
-                    successRate: 0,
-                    activeApiKeys: 0,
-                    revenue: { monthly: 0, projected: 0 }
-                },
-                recentActivity: [],
-                compliance: 'terms_compliant',
-                message: 'Running in demo mode'
-            });
-        }
-    } catch (error) {
-        console.error('Dashboard error:', error);
-        res.status(500).json({ error: 'Failed to load dashboard' });
-    }
-});
-
-// User Management
-app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
-        }
-        
-        const users = await db.collection('users')
-            .find({}, { projection: { password: 0 } })
-            .sort({ createdAt: -1 })
-            .toArray();
-        
-        res.json({
-            success: true,
-            users: users.map(user => ({
-                ...user,
-                compliance: 'terms_compliant'
-            }))
-        });
-        
-    } catch (error) {
-        console.error('Users fetch error:', error);
-        res.status(500).json({ error: 'Failed to fetch users' });
-    }
-});
-
-// Video Logs
-app.get('/api/admin/videos', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
-        }
-        
-        const videos = await db.collection('videologs')
-            .find({})
-            .sort({ createdAt: -1 })
-            .limit(50)
-            .toArray();
-        
-        res.json({
-            success: true,
-            videos: videos.map(video => ({
-                ...video,
-                compliance: 'terms_compliant'
-            }))
-        });
-        
-    } catch (error) {
-        console.error('Videos fetch error:', error);
-        res.status(500).json({ error: 'Failed to fetch video logs' });
-    }
-});
-
-// Add this temporary test route to your server.js after the other routes
-app.post('/api/test/video-generation', async (req, res) => {
-    try {
-        console.log('Testing video generation with hardcoded API keys');
-        
-        // Use your actual API keys directly (no encryption/decryption)
-        const testApiKeys = {
-            elevenlabs: 'sk_your_actual_elevenlabs_key_here',
-            pexels: 'your_actual_pexels_key_here',
-            pixabay: 'your_actual_pixabay_key_here'
-        };
-
-        const generator = new CompleteVideoGenerator(testApiKeys);
-        
-        const videoResult = await generator.generateVideo({
-            title: 'Test Video Generation',
-            category: 'personal-finance',
-            duration: 1, // Short test video
-            tone: 'professional',
-            voiceStyle: 'professional-male',
-            visualStyle: 'corporate'
-        });
-
-        res.json({
-            success: true,
-            message: 'Test video generation completed',
-            result: videoResult
-        });
-
-    } catch (error) {
-        console.error('Test video generation failed:', error);
-        res.status(500).json({ 
-            error: error.message,
-            stack: error.stack 
-        });
-    }
-});
-
-// Error handling for undefined routes
+// 404 handler
 app.use('*', (req, res) => {
-    res.status(404).json({
+    res.status(404).json({ 
         error: 'Endpoint not found',
         availableEndpoints: [
             'GET /api/health',
@@ -1765,48 +1499,28 @@ app.use('*', (req, res) => {
     });
 });
 
-// Global error handler
-app.use((error, req, res, next) => {
-    console.error('Global error handler:', error);
-    res.status(500).json({
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-    });
-});
-
-// Server Configuration
-const PORT = process.env.PORT || 8080;
-
+// Server startup
 async function startServer() {
     try {
         console.log('Starting AI Hollywood Studio Backend...');
-        console.log('Security: AES-256 encryption enabled');
-        console.log('Authentication: Robust system with fallback');
         
         await connectToDatabase();
         
         app.listen(PORT, () => {
             console.log('AI Hollywood Studio Backend LIVE!');
             console.log(`Server running on port ${PORT}`);
-            console.log('Authentication System: Robust');
-            console.log('Admin Email:', authManager ? authManager.adminEmail : 'Not configured');
-            console.log('Admin Password: admin123');
-            console.log('All security systems active');
-            console.log('CORS enabled for:', process.env.FRONTEND_URL || '*');
-            console.log('Ready to serve Hollywood-quality videos!');
-            console.log('Test endpoints:');
-            console.log(`  Health: http://localhost:${PORT}/api/health`);
-            console.log(`  Demo: http://localhost:${PORT}/api/demo/status`);
-            console.log('Complete video generation with FFmpeg enabled');
-            console.log('Compliance: Terms-compliant stock media integration');
+            console.log(`Version: Enhanced Video Generation System`);
+            console.log(`Admin login: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+            console.log(`Database: ${db ? 'Connected' : 'Disconnected'}`);
         });
+        
     } catch (error) {
         console.error('Failed to start server:', error);
         process.exit(1);
     }
 }
 
-// Handle graceful shutdown
+// Handle process termination
 process.on('SIGTERM', () => {
     console.log('SIGTERM received, shutting down gracefully');
     process.exit(0);
