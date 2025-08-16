@@ -790,6 +790,40 @@ app.get('/api/debug/admin', async (req, res) => {
     }
 });
 
+// Temporary fix route - reset admin password
+app.post('/api/debug/reset-admin', async (req, res) => {
+    if (!db || !authManager) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const hashedPassword = await bcrypt.hash(authManager.adminPasswordPlain, 12);
+        
+        const result = await db.collection('users').updateOne(
+            { email: authManager.adminEmail },
+            { 
+                $set: { 
+                    password: hashedPassword,
+                    role: 'admin',
+                    plan: 'enterprise',
+                    isActive: true,
+                    updatedAt: new Date()
+                }
+            }
+        );
+        
+        res.json({
+            success: true,
+            message: 'Admin password reset successfully',
+            modifiedCount: result.modifiedCount,
+            newPassword: authManager.adminPasswordPlain
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Demo Status
 app.get('/api/demo/status', (req, res) => {
     res.json({
