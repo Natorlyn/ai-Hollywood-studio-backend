@@ -765,6 +765,31 @@ app.get('/api/health', async (req, res) => {
     res.json(healthData);
 });
 
+// Temporary debug route - remove after fixing
+app.get('/api/debug/admin', async (req, res) => {
+    if (db && authManager) {
+        const user = await db.collection('users').findOne({ email: authManager.adminEmail });
+        res.json({
+            userExists: !!user,
+            userRole: user?.role,
+            userEmail: user?.email,
+            adminPassword: authManager.adminPasswordPlain,
+            adminEmail: authManager.adminEmail,
+            environmentVariables: {
+                ADMIN_PASSWORD: !!process.env.ADMIN_PASSWORD,
+                ADMIN_EMAIL: !!process.env.ADMIN_EMAIL
+            }
+        });
+    } else {
+        res.json({ 
+            error: 'No database connection',
+            authManager: !!authManager,
+            adminPassword: authManager?.adminPasswordPlain,
+            adminEmail: authManager?.adminEmail
+        });
+    }
+});
+
 // Demo Status
 app.get('/api/demo/status', (req, res) => {
     res.json({
