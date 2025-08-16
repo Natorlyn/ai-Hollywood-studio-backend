@@ -449,11 +449,27 @@ class AuthenticationManager {
             });
 
             if (existingAdmin) {
-                console.log('Admin user already exists');
+                console.log('Admin user already exists - updating password if needed');
+                
+                // Update existing admin user with new hashed password
+                const hashedPassword = await bcrypt.hash(this.adminPasswordPlain, 12);
+                
+                await this.db.collection('users').updateOne(
+                    { email: this.adminEmail, role: 'admin' },
+                    { 
+                        $set: { 
+                            password: hashedPassword,
+                            isActive: true,
+                            updatedAt: new Date()
+                        }
+                    }
+                );
+                
+                console.log('Admin user password updated successfully');
                 return existingAdmin;
             }
 
-            // Create new admin user with hashed password
+            // Create new admin user only if doesn't exist
             const hashedPassword = await bcrypt.hash(this.adminPasswordPlain, 12);
             
             const adminUser = {
@@ -475,7 +491,8 @@ class AuthenticationManager {
             
         } catch (error) {
             console.error('Failed to initialize admin user:', error);
-            throw error;
+            // Don't throw error - continue with fallback authentication
+            return null;
         }
     }
 
