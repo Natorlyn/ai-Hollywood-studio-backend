@@ -1,6 +1,9 @@
 require('dotenv').config();
-// Railway-specific configuration
-app.set('trust proxy', 1);
+
+// Debug environment variables
+console.log('🔍 Environment check - MongoDB URI exists:', !!process.env.MONGODB_URI);
+console.log('🔍 Environment check - NODE_ENV:', process.env.NODE_ENV);
+console.log('🔍 Environment check - Admin Email:', process.env.ADMIN_EMAIL);
 
 // AI Hollywood Studio - Production Backend with MongoDB
 const express = require('express');
@@ -13,6 +16,10 @@ const crypto = require('crypto');
 const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
+
+// Railway-specific configuration
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 3001;
 
 // ===== ENVIRONMENT CONFIGURATION =====
@@ -38,6 +45,7 @@ const config = {
 console.log('🚀 Starting AI Hollywood Studio Backend...');
 console.log('🔐 Security: AES-256 encryption enabled');
 console.log('👑 Admin access configured for:', config.adminEmail);
+console.log('🔗 MongoDB URI configured:', config.mongoUri ? 'YES' : 'NO');
 
 // ===== DATABASE CONNECTION =====
 let db;
@@ -46,6 +54,8 @@ let client;
 async function connectToDatabase() {
   try {
     console.log('🔌 Connecting to MongoDB...');
+    console.log('🔗 Connection string:', config.mongoUri.substring(0, 30) + '...');
+    
     client = new MongoClient(config.mongoUri);
     await client.connect();
     db = client.db();
@@ -159,19 +169,21 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate Limiting
+// Rate Limiting with trust proxy fix
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: true, // Fix for Railway
 });
 
 const adminLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 20,
-  message: { error: 'Too many admin requests, please try again later' }
+  message: { error: 'Too many admin requests, please try again later' },
+  trustProxy: true, // Fix for Railway
 });
 
 app.use('/api/', generalLimiter);
@@ -234,6 +246,8 @@ app.get('/api/health', (req, res) => {
     version: '1.0.0',
     environment: config.environment,
     database: db ? 'connected' : 'demo_mode',
+    mongoConfigured: !!config.mongoUri,
+    adminEmail: config.adminEmail,
     message: 'AI Hollywood Studio Backend is running!'
   });
 });
@@ -463,6 +477,12 @@ app.get('/api/demo/status', (req, res) => {
   res.json({
     message: 'AI Hollywood Studio Backend is running!',
     database: db ? 'Connected to MongoDB Atlas' : 'Demo mode - MongoDB not connected',
+    environmentVars: {
+      mongoUri: !!config.mongoUri,
+      adminEmail: !!config.adminEmail,
+      jwtSecret: !!config.jwtSecret,
+      nodeEnv: config.environment
+    },
     features: [
       '🔐 Security systems active',
       '🎬 Video generation ready',
@@ -472,12 +492,12 @@ app.get('/api/demo/status', (req, res) => {
     ],
     nextSteps: db ? [
       'Backend is fully operational',
-      'Deploy to Railway',
+      'Database connected successfully',
       'Configure API keys via admin panel',
       'Connect frontend application'
     ] : [
       'Connect to MongoDB Atlas',
-      'Deploy to Railway',
+      'Check environment variables',
       'Configure API keys',
       'Connect frontend'
     ]
@@ -506,7 +526,7 @@ app.use('*', (req, res) => {
 // ===== START SERVER =====
 async function startServer() {
   try {
-    // Try to connect to database
+    // IMPORTANT: Actually call the database connection function
     await connectToDatabase();
     
     app.listen(PORT, () => {
@@ -525,7 +545,11 @@ async function startServer() {
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
-    process.exit(1);
+    // Don't exit in production - continue without database
+    app.listen(PORT, () => {
+      console.log('🚀 AI Hollywood Studio Backend LIVE! (Demo mode)');
+      console.log(`📡 Server running on port ${PORT}`);
+    });
   }
 }
 
