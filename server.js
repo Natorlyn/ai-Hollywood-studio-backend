@@ -184,8 +184,8 @@ class CompleteVideoGenerator {
         };
 
         const template = templates[category] || templates['business'];
-        const wordsPerMinute = 150;
-        const targetWords = duration * wordsPerMinute;
+        const wordsPerMinute = 150; // Full rate for upgraded plan
+        const targetWords = duration * wordsPerMinute; // No artificial cap
         
         console.log(`Generating script for ${duration} minutes (target: ${targetWords} words)`);
         
@@ -220,7 +220,7 @@ class CompleteVideoGenerator {
             expandedConclusion
         ].join('\n\n');
         
-        console.log(`Generated script: ${fullContent.split(' ').length} words for ${duration} minutes`);
+        console.log(`Generated script: ${fullContent.split(' ').length} words, ${fullContent.length} characters for ${duration} minutes`);
         
         return {
             title,
@@ -230,7 +230,8 @@ class CompleteVideoGenerator {
             content: fullContent,
             scenes: expandedSections.length + 2,
             duration: duration,
-            wordCount: fullContent.split(' ').length
+            wordCount: fullContent.split(' ').length,
+            characterCount: fullContent.length
         };
     }
 
@@ -401,6 +402,7 @@ class CompleteVideoGenerator {
 
         try {
             console.log(`Generating voiceover with ElevenLabs - Voice: ${voiceStyle}`);
+            console.log(`Script length: ${script.length} characters`);
             
             // Corrected Voice IDs for proper gender mapping
             const voiceIds = {
@@ -415,10 +417,89 @@ class CompleteVideoGenerator {
             const selectedVoiceId = voiceIds[voiceStyle] || voiceIds['professional-male'];
             console.log(`Using voice ID: ${selectedVoiceId} for style: ${voiceStyle}`);
             
+            // With 100k characters, we can handle larger requests
+            const MAX_CHARS_PER_REQUEST = 8000; // Larger chunks for upgraded plan
+            
+            if (script.length <= MAX_CHARS_PER_REQUEST) {
+                // Single request for smaller scripts
+                console.log('Processing as single request');
+                
+                const response = await axios.post(
+                    `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
+                    {
+                        text: script,
+                        model_id: 'eleven_monolingual_v1',
+                        voice_settings: {
+                            stability: 0.85,
+                            similarity_boost: 0.85,
+                            style: 0.3,
+                            use_speaker_boost: true
+                        },
+                        output_format: "mp3_44100_128"
+                    },
+                    {
+                        headers: {
+                            'Accept': 'audio/mpeg',
+                            'Content-Type': 'application/json',
+                            'xi-api-key': this.elevenLabsKey
+                        },
+                        responseType: 'arraybuffer',
+                        timeout: 120000
+                    }
+                );
+
+                const audioFileName = `audio_${Date.now()}_${title.replace(/[^a-z0-9]/gi, '_')}.mp3`;
+                const audioFilePath = path.join(this.tempDir, audioFileName);
+                
+                await fs.writeFile(audioFilePath, response.data);
+                console.log(`Voiceover generated successfully: ${audioFileName} (${Math.round(response.data.byteLength / 1024)} KB)`);
+                
+                return audioFilePath;
+                
+            } else {
+                // Split into chunks for very long scripts
+                console.log('Processing as chunked request');
+                return await this.generateChunkedVoiceover(script, selectedVoiceId, title);
+            }
+            
+        } catch (error) {
+            console.error('ElevenLabs API error:', error.response?.data || error.message);
+            
+            // Parse the error buffer if it exists
+            if (error.response?.data instanceof Buffer) {
+                try {
+                    const errorText = error.response.data.toString();
+                    const errorObj = JSON.parse(errorText);
+                    console.error('ElevenLabs error details:', errorObj);
+                    
+                    if (errorObj.detail?.status === 'max_character_limit_exceeded') {
+                        throw new Error('ElevenLabs character limit exceeded. Please check your usage or upgrade your plan.');
+                    }
+                } catch (parseError) {
+                    console.error('Could not parse ElevenLabs error:', parseError);
+                }
+            }
+            
+            throw new Error('Voiceover generation failed: ' + (error.response?.data?.detail || error.message));
+        }
+    }
+
+    async generateChunkedVoiceover(script, voiceId, title) {
+        const MAX_CHARS_PER_REQUEST = 8000;
+        
+        // Split script into manageable chunks
+        const chunks = this.splitScriptIntoChunks(script, MAX_CHARS_PER_REQUEST);
+        console.log(`Split script into ${chunks.length} chunks`);
+        
+        const audioFiles = [];
+        
+        for (let i = 0; i < chunks.length; i++) {
+            console.log(`Processing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
+            
             const response = await axios.post(
-                `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
+                `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
                 {
-                    text: script,
+                    text: chunks[i],
                     model_id: 'eleven_monolingual_v1',
                     voice_settings: {
                         stability: 0.85,
@@ -439,17 +520,125 @@ class CompleteVideoGenerator {
                 }
             );
 
-            const audioFileName = `audio_${Date.now()}_${title.replace(/[^a-z0-9]/gi, '_')}.mp3`;
-            const audioFilePath = path.join(this.tempDir, audioFileName);
+            const chunkFileName = `audio_chunk_${i}_${Date.now()}.mp3`;
+            const chunkFilePath = path.join(this.tempDir, chunkFileName);
             
-            await fs.writeFile(audioFilePath, response.data);
-            console.log(`Voiceover generated successfully: ${audioFileName} (${Math.round(response.data.byteLength / 1024)} KB)`);
+            await fs.writeFile(chunkFilePath, response.data);
+            audioFiles.push(chunkFilePath);
             
-            return audioFilePath;
+            console.log(`Chunk ${i + 1} generated: ${chunkFileName} (${Math.round(response.data.byteLength / 1024)} KB)`);
+            
+            // Small delay between requests to avoid rate limiting
+            if (i < chunks.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+        
+        // Combine all audio chunks into one file
+        const finalAudioPath = await this.combineAudioChunks(audioFiles, title);
+        
+        // Clean up temporary chunk files
+        for (const chunkFile of audioFiles) {
+            try {
+                await fs.unlink(chunkFile);
+            } catch (error) {
+                console.error(`Failed to delete chunk file ${chunkFile}:`, error);
+            }
+        }
+        
+        console.log(`Chunked voiceover generation completed: ${path.basename(finalAudioPath)}`);
+        return finalAudioPath;
+    }
+
+    splitScriptIntoChunks(script, maxChars) {
+        const chunks = [];
+        const sentences = script.match(/[^\.!?]+[\.!?]+/g) || [script];
+        
+        let currentChunk = '';
+        
+        for (const sentence of sentences) {
+            // If adding this sentence would exceed the limit
+            if (currentChunk.length + sentence.length > maxChars) {
+                // If current chunk has content, save it
+                if (currentChunk.trim().length > 0) {
+                    chunks.push(currentChunk.trim());
+                    currentChunk = '';
+                }
+                
+                // If single sentence is too long, split by words
+                if (sentence.length > maxChars) {
+                    const words = sentence.split(' ');
+                    let wordChunk = '';
+                    
+                    for (const word of words) {
+                        if (wordChunk.length + word.length + 1 > maxChars) {
+                            if (wordChunk.trim().length > 0) {
+                                chunks.push(wordChunk.trim());
+                            }
+                            wordChunk = word;
+                        } else {
+                            wordChunk += (wordChunk.length > 0 ? ' ' : '') + word;
+                        }
+                    }
+                    
+                    if (wordChunk.trim().length > 0) {
+                        currentChunk = wordChunk;
+                    }
+                } else {
+                    currentChunk = sentence;
+                }
+            } else {
+                currentChunk += sentence;
+            }
+        }
+        
+        // Add the last chunk if it has content
+        if (currentChunk.trim().length > 0) {
+            chunks.push(currentChunk.trim());
+        }
+        
+        return chunks.filter(chunk => chunk.length > 0);
+    }
+
+    async combineAudioChunks(audioFiles, title) {
+        try {
+            console.log(`Combining ${audioFiles.length} audio chunks`);
+            
+            const finalAudioFileName = `audio_${Date.now()}_${title.replace(/[^a-z0-9]/gi, '_')}.mp3`;
+            const finalAudioPath = path.join(this.tempDir, finalAudioFileName);
+            
+            if (audioFiles.length === 1) {
+                // If only one chunk, just rename it
+                await fs.copyFile(audioFiles[0], finalAudioPath);
+            } else {
+                // Use FFmpeg to concatenate audio files
+                const inputList = audioFiles.map(file => `file '${file}'`).join('\n');
+                const listFilePath = path.join(this.tempDir, 'audio_list.txt');
+                
+                await fs.writeFile(listFilePath, inputList);
+                
+                const command = `ffmpeg -y -f concat -safe 0 -i "${listFilePath}" -c copy "${finalAudioPath}"`;
+                
+                await execAsync(command, { timeout: 60000 });
+                
+                // Clean up list file
+                await fs.unlink(listFilePath);
+            }
+            
+            console.log(`Audio chunks combined successfully: ${finalAudioFileName}`);
+            return finalAudioPath;
             
         } catch (error) {
-            console.error('ElevenLabs API error:', error.response?.data || error.message);
-            throw new Error('Voiceover generation failed: ' + (error.response?.data?.detail || error.message));
+            console.error('Failed to combine audio chunks:', error);
+            
+            // Fallback: return the first chunk if combination fails
+            if (audioFiles.length > 0) {
+                const fallbackPath = path.join(this.tempDir, `fallback_audio_${Date.now()}.mp3`);
+                await fs.copyFile(audioFiles[0], fallbackPath);
+                return fallbackPath;
+            }
+            
+            throw error;
         }
     }
 
@@ -1120,11 +1309,11 @@ app.get('/api/demo/status', (req, res) => {
         authentication: {
             adminEmail: ADMIN_EMAIL,
             adminPassword: ADMIN_PASSWORD,
-            system: 'Robust with fallback'
+            system: 'Enhanced with 100k character support'
         },
         features: [
-            'Script Generation',
-            'ElevenLabs Voiceover',
+            'Script Generation (Enhanced for 100k chars)',
+            'ElevenLabs Voiceover (Chunked Processing)',
             'Pexels Stock Videos',
             'Pixabay Stock Images',
             'FFmpeg Compilation'
@@ -1280,7 +1469,7 @@ app.post('/api/videos/generate', authenticateToken, async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Video generated successfully with complete system',
+            message: 'Video generated successfully with enhanced system',
             video: result,
             downloadUrl: result.downloadUrl
         });
@@ -1335,43 +1524,6 @@ app.post('/api/admin/apikeys', authenticateToken, requireAdmin, async (req, res)
         const encryptedKey = SecureVault.encrypt(apiKey);
 
         // Update or insert API key
-        await db.collection('apikeys').updateOne(
-            { service },
-            {
-                $set: {
-                    service,
-                    encryptedKey,
-                    isActive: true,
-                    updatedAt: new Date()
-                },
-                $setOnInsert: {
-                    createdAt: new Date()
-                }
-            },
-            { upsert: true }
-        );
-
-        console.log(`API key updated for service: ${service}`);
-
-        res.json({
-            success: true,
-            message: `API key for ${service} updated successfully`
-        });
-
-    } catch (error) {
-        console.error('Failed to save API key:', error);
-        res.status(500).json({ error: 'Failed to save API key' });
-    }
-});
-
-app.delete('/api/admin/apikeys/:service', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { service } = req.params;
-
-        if (!db) {
-            return res.status(500).json({ error: 'Database not available' });
-        }
-
         await db.collection('apikeys').updateOne(
             { service },
             { $set: { isActive: false, deactivatedAt: new Date() } }
@@ -1509,7 +1661,7 @@ async function startServer() {
         app.listen(PORT, () => {
             console.log('AI Hollywood Studio Backend LIVE!');
             console.log(`Server running on port ${PORT}`);
-            console.log(`Version: Enhanced Video Generation System`);
+            console.log(`Version: Enhanced for 100k Character Support`);
             console.log(`Admin login: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
             console.log(`Database: ${db ? 'Connected' : 'Disconnected'}`);
         });
@@ -1532,4 +1684,41 @@ process.on('SIGINT', () => {
 });
 
 // Start the server
-startServer();
+startServer();One(
+            { service },
+            {
+                $set: {
+                    service,
+                    encryptedKey,
+                    isActive: true,
+                    updatedAt: new Date()
+                },
+                $setOnInsert: {
+                    createdAt: new Date()
+                }
+            },
+            { upsert: true }
+        );
+
+        console.log(`API key updated for service: ${service}`);
+
+        res.json({
+            success: true,
+            message: `API key for ${service} updated successfully`
+        });
+
+    } catch (error) {
+        console.error('Failed to save API key:', error);
+        res.status(500).json({ error: 'Failed to save API key' });
+    }
+});
+
+app.delete('/api/admin/apikeys/:service', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { service } = req.params;
+
+        if (!db) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+
+        await db.collection('apikeys').update
