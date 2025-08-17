@@ -132,88 +132,33 @@ class CompleteVideoGenerator {
                     'Long-term investment strategies'
                 ],
                 conclusion: `The crypto space moves fast, but with the right knowledge and careful approach, you can navigate it successfully. Stay informed, never invest more than you can afford to lose, and always prioritize security in your crypto journey.`
-            },
-            'artificial-intelligence': {
-                intro: `Artificial Intelligence is reshaping every industry, and ${title} represents one of the most significant developments in this space. Whether you're a business owner, investor, or tech enthusiast, understanding these concepts is essential.`,
-                mainSections: [
-                    'AI fundamentals and current capabilities',
-                    'Industry applications and use cases',
-                    'Investment opportunities and market trends',
-                    'Implementation strategies for businesses',
-                    'Future implications and ethical considerations',
-                    'Machine learning algorithms and data science',
-                    'Natural language processing and automation',
-                    'Computer vision and robotics applications',
-                    'AI safety and regulatory frameworks',
-                    'Career opportunities in the AI revolution'
-                ],
-                conclusion: `AI is not just the future—it's the present. By understanding and adapting to these changes now, you position yourself ahead of the curve. The opportunities are immense for those who take action today.`
-            },
-            'startups': {
-                intro: `Building a successful startup requires more than just a great idea. Today, we're exploring ${title} and the essential strategies that separate successful entrepreneurs from those who struggle.`,
-                mainSections: [
-                    'Idea validation and market research',
-                    'Building the right team and culture',
-                    'Funding strategies and investor relations',
-                    'Product development and iteration',
-                    'Scaling and growth strategies',
-                    'Customer acquisition and retention',
-                    'Financial planning and cash flow management',
-                    'Legal structures and intellectual property',
-                    'Marketing and brand building',
-                    'Exit strategies and long-term planning'
-                ],
-                conclusion: `Entrepreneurship is challenging but incredibly rewarding. Success comes to those who combine vision with execution, persistence with adaptability. Take these insights and start building something amazing today.`
-            },
-            'business': {
-                intro: `In today's competitive business environment, understanding ${title} can be the difference between thriving and merely surviving. This comprehensive guide will give you the strategic insights you need to succeed.`,
-                mainSections: [
-                    'Strategic planning and goal setting',
-                    'Market positioning and competitive advantage',
-                    'Operations optimization and efficiency',
-                    'Financial management and profitability',
-                    'Leadership and team development',
-                    'Digital transformation and technology adoption',
-                    'Customer experience and satisfaction',
-                    'Supply chain management and logistics',
-                    'Risk management and crisis planning',
-                    'Innovation and continuous improvement'
-                ],
-                conclusion: `Business success is built on solid fundamentals executed consistently. Implement these strategies systematically, measure your results, and never stop learning. Your future success depends on the actions you take today.`
             }
         };
 
-        const template = templates[category] || templates['business'];
-        const wordsPerMinute = 150; // Full rate for upgraded plan
-        const targetWords = duration * wordsPerMinute; // No artificial cap
+        const template = templates[category] || templates['personal-finance'];
+        const wordsPerMinute = 150;
+        const targetWords = duration * wordsPerMinute;
         
         console.log(`Generating script for ${duration} minutes (target: ${targetWords} words)`);
         
-        // Calculate words per section
         const introWords = Math.floor(targetWords * 0.15);
         const conclusionWords = Math.floor(targetWords * 0.10);
         const mainContentWords = targetWords - introWords - conclusionWords;
         
-        // Generate expanded intro
         const expandedIntro = this.expandContent(template.intro, introWords, tone);
         
-        // Generate expanded main content sections
         const wordsPerSection = Math.floor(mainContentWords / template.mainSections.length);
         const expandedSections = template.mainSections.map((section, index) => {
             const sectionContent = this.expandSection(section, wordsPerSection, tone, category);
-            const timing = `${Math.floor(index * (duration / template.mainSections.length))}-${Math.floor((index + 1) * (duration / template.mainSections.length))} minutes`;
-            
             return {
                 title: section,
                 content: sectionContent,
-                timing: timing
+                timing: `${Math.floor(index * (duration / template.mainSections.length))}-${Math.floor((index + 1) * (duration / template.mainSections.length))} minutes`
             };
         });
         
-        // Generate expanded conclusion
         const expandedConclusion = this.expandContent(template.conclusion, conclusionWords, tone);
         
-        // Combine all content
         const fullContent = [
             expandedIntro,
             ...expandedSections.map(s => s.content),
@@ -236,77 +181,24 @@ class CompleteVideoGenerator {
     }
 
     expandContent(baseContent, targetWords, tone) {
-        const toneStyles = {
-            'professional': 'In professional terms, ',
-            'educational': 'From an educational perspective, ',
-            'conversational': 'Let me explain this simply - ',
-            'authoritative': 'Industry experts consistently demonstrate that ',
-            'motivational': 'Here is what successful people understand - '
-        };
-
-        const starter = toneStyles[tone] || toneStyles['educational'];
-        
-        // More varied expansion content to reduce repetition
         const expansions = [
             'Comprehensive research across multiple industries reveals specific patterns that distinguish high performers from average practitioners.',
             'Data analysis from leading institutions shows measurable differences in outcomes when systematic approaches are implemented correctly.',
             'Case study documentation spanning decades provides clear evidence of which methodologies produce sustainable long-term results.',
             'Professional development experts emphasize that skill mastery requires both theoretical understanding and practical application.',
-            'Market analysis indicates that individuals who invest time in foundational knowledge consistently outperform those who focus solely on tactics.',
-            'Behavioral psychology research demonstrates how cognitive biases can derail even well-intentioned efforts without proper awareness.',
-            'Technology integration has transformed traditional approaches, creating new opportunities for those who adapt quickly to changing landscapes.',
-            'Risk assessment methodologies help identify potential obstacles before they become significant problems that derail progress.',
-            'Performance metrics and tracking systems enable continuous improvement through data-driven decision making processes.',
-            'Networking and relationship building remain crucial factors that amplify individual efforts through collaborative partnerships.',
-            'Global market trends influence local implementation strategies, requiring adaptive approaches that balance universal principles with regional considerations.',
-            'Innovation cycles create windows of opportunity that reward early adopters who position themselves strategically.',
-            'Regulatory frameworks continue evolving, necessitating ongoing education to maintain compliance while maximizing operational efficiency.',
-            'Resource allocation decisions impact long-term sustainability more than short-term tactical choices.',
-            'Quality control processes ensure consistent delivery of results that meet or exceed established standards.',
-            'Customer feedback loops provide valuable insights for iterative improvements that enhance overall value propositions.',
-            'Competitive analysis reveals market gaps where differentiated approaches can establish strong positioning.',
-            'Supply chain optimization reduces costs while improving reliability of resource availability.',
-            'Digital transformation initiatives require cultural adaptation alongside technological implementation.',
-            'Sustainability considerations increasingly influence strategic planning across all industry sectors.'
+            'Market analysis indicates that individuals who invest time in foundational knowledge consistently outperform those who focus solely on tactics.'
         ];
 
         let expandedContent = baseContent;
         let currentWords = baseContent.split(' ').length;
         
-        // Randomize expansions to reduce repetition
-        const shuffledExpansions = [...expansions].sort(() => Math.random() - 0.5);
-        
         let expansionIndex = 0;
-        while (currentWords < targetWords && expansionIndex < shuffledExpansions.length) {
-            expandedContent += ' ' + shuffledExpansions[expansionIndex];
+        while (currentWords < targetWords && expansionIndex < expansions.length) {
+            expandedContent += ' ' + expansions[expansionIndex];
             currentWords = expandedContent.split(' ').length;
             expansionIndex++;
         }
         
-        // If we need more content, add connecting phrases
-        if (currentWords < targetWords) {
-            const connectors = [
-                'Furthermore, practical implementation requires',
-                'Additionally, recent developments indicate that',
-                'Moreover, successful practitioners emphasize',
-                'In particular, emerging trends suggest',
-                'Consequently, optimal results depend on',
-                'Similarly, industry leaders recommend',
-                'Therefore, strategic planning must consider',
-                'Subsequently, effective execution involves'
-            ];
-            
-            const shuffledConnectors = [...connectors].sort(() => Math.random() - 0.5);
-            let connectorIndex = 0;
-            
-            while (currentWords < targetWords && connectorIndex < shuffledConnectors.length) {
-                expandedContent += ' ' + shuffledConnectors[connectorIndex] + ' understanding the interconnected nature of these factors.';
-                currentWords = expandedContent.split(' ').length;
-                connectorIndex++;
-            }
-        }
-        
-        // Trim to exact word count if needed
         const words = expandedContent.split(' ');
         if (words.length > targetWords) {
             expandedContent = words.slice(0, targetWords).join(' ');
@@ -316,83 +208,33 @@ class CompleteVideoGenerator {
     }
 
     expandSection(sectionTitle, targetWords, tone, category) {
-        const categoryExamples = {
-            'personal-finance': [
-                'For instance, the 50-30-20 budgeting framework allocates 50% of income to essential needs, 30% to discretionary spending, and 20% to savings and debt repayment.',
-                'High-yield savings accounts currently offer annual percentage yields between 4.5-5.2%, significantly outperforming traditional savings options.',
-                'Statistical analysis shows that individuals with seven or more income sources achieve financial independence 2.3 times faster than single-income earners.',
-                'Compound interest calculations demonstrate that a $5,000 annual investment at 8% returns grows to over $540,000 in 30 years.'
-            ],
-            'investing': [
-                'Historical market data shows the S&P 500 has delivered an average annual return of 10.5% over the past century, despite periodic volatility.',
-                'Dollar-cost averaging strategies have outperformed market timing attempts in 87% of 20-year investment periods since 1950.',
-                'Asset allocation research indicates that 90% of portfolio performance is determined by allocation decisions rather than individual security selection.',
-                'Diversification studies reveal that portfolios with 25-30 uncorrelated assets achieve optimal risk-adjusted returns.'
-            ],
-            'cryptocurrency': [
-                'Blockchain analysis shows Bitcoin has maintained 99.98% uptime since its inception, demonstrating remarkable network reliability.',
-                'Institutional adoption accelerated with over $100 billion in corporate Bitcoin holdings reported by publicly traded companies.',
-                'DeFi protocols have facilitated over $2 trillion in transaction volume, representing a paradigm shift in financial intermediation.',
-                'Energy consumption metrics indicate Bitcoin mining increasingly utilizes renewable sources, with sustainable energy usage exceeding 58%.'
-            ],
-            'artificial-intelligence': [
-                'Machine learning model performance has improved exponentially, with natural language processing accuracy exceeding 95% on standardized benchmarks.',
-                'AI implementation studies show productivity gains of 25-40% in organizations that successfully integrate artificial intelligence technologies.',
-                'Computer vision systems now achieve superhuman accuracy in medical imaging diagnosis, detecting conditions missed by traditional methods.',
-                'Automation forecasts suggest AI will create 97 million new jobs while transforming existing roles across multiple industries.'
-            ],
-            'startups': [
-                'Venture capital data indicates that startups with diverse founding teams are 2.9 times more likely to achieve successful exits.',
-                'Customer acquisition cost analysis shows that companies with strong product-market fit achieve 3x lower acquisition costs.',
-                'Cash flow management statistics reveal that 82% of business failures result from poor cash flow planning rather than profitability issues.',
-                'Scaling research demonstrates that companies maintaining culture during rapid growth achieve 4x higher employee retention rates.'
-            ],
-            'business': [
-                'Operations research indicates that businesses implementing lean methodologies achieve 15-25% cost reductions while improving quality metrics.',
-                'Customer experience studies show that companies with superior service delivery generate 5.7 times more revenue than competitors.',
-                'Leadership effectiveness analysis reveals that organizations with strong development programs achieve 2.3 times higher employee engagement.',
-                'Digital transformation data shows that businesses embracing technology integration increase market share by an average of 12%.'
-            ]
-        };
-
-        const examples = categoryExamples[category] || categoryExamples['personal-finance'];
-        
-        const baseExpansions = [
-            'Implementation methodology requires systematic evaluation of multiple interconnected variables that influence final outcomes.',
-            'Best practices documentation emphasizes the importance of establishing clear metrics before beginning any optimization process.',
-            'Strategic planning frameworks provide structured approaches for navigating complex decision-making scenarios.',
-            'Risk mitigation strategies help identify potential failure points before they compromise overall project success.',
-            'Performance monitoring systems enable real-time adjustments that maintain progress toward established objectives.',
-            'Resource optimization techniques maximize efficiency while minimizing waste in operational processes.',
-            'Stakeholder engagement protocols ensure alignment across all parties involved in implementation efforts.',
-            'Quality assurance processes maintain standards throughout execution phases, preventing costly errors.',
-            'Continuous improvement methodologies facilitate ongoing refinement based on performance feedback.',
-            'Change management principles help organizations adapt to new processes without disrupting core operations.'
+        const examples = [
+            'For instance, statistical analysis shows that systematic approaches achieve measurably better outcomes than ad-hoc methods.',
+            'Research demonstrates that organizations implementing structured methodologies see consistent improvements in performance metrics.',
+            'Case studies reveal that companies following established frameworks achieve their objectives 3x more frequently than those without clear systems.'
         ];
 
         let content = `Examining ${sectionTitle.toLowerCase()} reveals several critical success factors that determine outcomes. `;
+        content += examples[0] + ' ';
         
-        // Add varied category-specific examples
-        const selectedExamples = examples.sort(() => Math.random() - 0.5).slice(0, 2);
-        content += selectedExamples.join(' ') + ' ';
-        
-        // Add randomized base expansions
-        const shuffledExpansions = baseExpansions.sort(() => Math.random() - 0.5);
         let currentWords = content.split(' ').length;
         
-        for (const expansion of shuffledExpansions) {
-            if (currentWords >= targetWords) break;
-            content += expansion + ' ';
-            currentWords = content.split(' ').length;
+        const fillerText = 'Implementation methodology requires systematic evaluation of multiple interconnected variables that influence final outcomes. Best practices documentation emphasizes the importance of establishing clear metrics before beginning any optimization process.';
+        
+        while (currentWords < targetWords) {
+            const remainingWords = targetWords - currentWords;
+            const fillerWords = fillerText.split(' ');
+            
+            if (remainingWords >= fillerWords.length) {
+                content += fillerText + ' ';
+                currentWords += fillerWords.length;
+            } else {
+                content += fillerWords.slice(0, remainingWords).join(' ');
+                break;
+            }
         }
         
-        // Trim to exact word count
-        const words = content.split(' ');
-        if (words.length > targetWords) {
-            content = words.slice(0, targetWords).join(' ');
-        }
-        
-        return content;
+        return content.trim();
     }
 
     async generateVoiceover(script, voiceStyle, title) {
@@ -404,102 +246,20 @@ class CompleteVideoGenerator {
             console.log(`Generating voiceover with ElevenLabs - Voice: ${voiceStyle}`);
             console.log(`Script length: ${script.length} characters`);
             
-            // Corrected Voice IDs for proper gender mapping
             const voiceIds = {
                 'professional-male': '29vD33N1CtxCmqQRPOHJ',
                 'professional-female': 'AZnzlk1XvdvUeBnXmlld',
                 'conversational-male': 'pNInz6obpgDQGcFmaJgB',
-                'conversational-female': 'XB0fDUnXU5powFXDhCwa',
-                'authoritative-male': 'onwK4e9ZLuTAKqWW03F9',
-                'warm-female': 'oWAxZDx7w5VEj9dCyTzz'
+                'conversational-female': 'XB0fDUnXU5powFXDhCwa'
             };
 
             const selectedVoiceId = voiceIds[voiceStyle] || voiceIds['professional-male'];
             console.log(`Using voice ID: ${selectedVoiceId} for style: ${voiceStyle}`);
             
-            // With 100k characters, we can handle larger requests
-            const MAX_CHARS_PER_REQUEST = 8000; // Larger chunks for upgraded plan
-            
-            if (script.length <= MAX_CHARS_PER_REQUEST) {
-                // Single request for smaller scripts
-                console.log('Processing as single request');
-                
-                const response = await axios.post(
-                    `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
-                    {
-                        text: script,
-                        model_id: 'eleven_monolingual_v1',
-                        voice_settings: {
-                            stability: 0.85,
-                            similarity_boost: 0.85,
-                            style: 0.3,
-                            use_speaker_boost: true
-                        },
-                        output_format: "mp3_44100_128"
-                    },
-                    {
-                        headers: {
-                            'Accept': 'audio/mpeg',
-                            'Content-Type': 'application/json',
-                            'xi-api-key': this.elevenLabsKey
-                        },
-                        responseType: 'arraybuffer',
-                        timeout: 120000
-                    }
-                );
-
-                const audioFileName = `audio_${Date.now()}_${title.replace(/[^a-z0-9]/gi, '_')}.mp3`;
-                const audioFilePath = path.join(this.tempDir, audioFileName);
-                
-                await fs.writeFile(audioFilePath, response.data);
-                console.log(`Voiceover generated successfully: ${audioFileName} (${Math.round(response.data.byteLength / 1024)} KB)`);
-                
-                return audioFilePath;
-                
-            } else {
-                // Split into chunks for very long scripts
-                console.log('Processing as chunked request');
-                return await this.generateChunkedVoiceover(script, selectedVoiceId, title);
-            }
-            
-        } catch (error) {
-            console.error('ElevenLabs API error:', error.response?.data || error.message);
-            
-            // Parse the error buffer if it exists
-            if (error.response?.data instanceof Buffer) {
-                try {
-                    const errorText = error.response.data.toString();
-                    const errorObj = JSON.parse(errorText);
-                    console.error('ElevenLabs error details:', errorObj);
-                    
-                    if (errorObj.detail?.status === 'max_character_limit_exceeded') {
-                        throw new Error('ElevenLabs character limit exceeded. Please check your usage or upgrade your plan.');
-                    }
-                } catch (parseError) {
-                    console.error('Could not parse ElevenLabs error:', parseError);
-                }
-            }
-            
-            throw new Error('Voiceover generation failed: ' + (error.response?.data?.detail || error.message));
-        }
-    }
-
-    async generateChunkedVoiceover(script, voiceId, title) {
-        const MAX_CHARS_PER_REQUEST = 8000;
-        
-        // Split script into manageable chunks
-        const chunks = this.splitScriptIntoChunks(script, MAX_CHARS_PER_REQUEST);
-        console.log(`Split script into ${chunks.length} chunks`);
-        
-        const audioFiles = [];
-        
-        for (let i = 0; i < chunks.length; i++) {
-            console.log(`Processing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
-            
             const response = await axios.post(
-                `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+                `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
                 {
-                    text: chunks[i],
+                    text: script,
                     model_id: 'eleven_monolingual_v1',
                     voice_settings: {
                         stability: 0.85,
@@ -520,125 +280,32 @@ class CompleteVideoGenerator {
                 }
             );
 
-            const chunkFileName = `audio_chunk_${i}_${Date.now()}.mp3`;
-            const chunkFilePath = path.join(this.tempDir, chunkFileName);
+            const audioFileName = `audio_${Date.now()}_${title.replace(/[^a-z0-9]/gi, '_')}.mp3`;
+            const audioFilePath = path.join(this.tempDir, audioFileName);
             
-            await fs.writeFile(chunkFilePath, response.data);
-            audioFiles.push(chunkFilePath);
+            await fs.writeFile(audioFilePath, response.data);
+            console.log(`Voiceover generated successfully: ${audioFileName} (${Math.round(response.data.byteLength / 1024)} KB)`);
             
-            console.log(`Chunk ${i + 1} generated: ${chunkFileName} (${Math.round(response.data.byteLength / 1024)} KB)`);
-            
-            // Small delay between requests to avoid rate limiting
-            if (i < chunks.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        }
-        
-        // Combine all audio chunks into one file
-        const finalAudioPath = await this.combineAudioChunks(audioFiles, title);
-        
-        // Clean up temporary chunk files
-        for (const chunkFile of audioFiles) {
-            try {
-                await fs.unlink(chunkFile);
-            } catch (error) {
-                console.error(`Failed to delete chunk file ${chunkFile}:`, error);
-            }
-        }
-        
-        console.log(`Chunked voiceover generation completed: ${path.basename(finalAudioPath)}`);
-        return finalAudioPath;
-    }
-
-    splitScriptIntoChunks(script, maxChars) {
-        const chunks = [];
-        const sentences = script.match(/[^\.!?]+[\.!?]+/g) || [script];
-        
-        let currentChunk = '';
-        
-        for (const sentence of sentences) {
-            // If adding this sentence would exceed the limit
-            if (currentChunk.length + sentence.length > maxChars) {
-                // If current chunk has content, save it
-                if (currentChunk.trim().length > 0) {
-                    chunks.push(currentChunk.trim());
-                    currentChunk = '';
-                }
-                
-                // If single sentence is too long, split by words
-                if (sentence.length > maxChars) {
-                    const words = sentence.split(' ');
-                    let wordChunk = '';
-                    
-                    for (const word of words) {
-                        if (wordChunk.length + word.length + 1 > maxChars) {
-                            if (wordChunk.trim().length > 0) {
-                                chunks.push(wordChunk.trim());
-                            }
-                            wordChunk = word;
-                        } else {
-                            wordChunk += (wordChunk.length > 0 ? ' ' : '') + word;
-                        }
-                    }
-                    
-                    if (wordChunk.trim().length > 0) {
-                        currentChunk = wordChunk;
-                    }
-                } else {
-                    currentChunk = sentence;
-                }
-            } else {
-                currentChunk += sentence;
-            }
-        }
-        
-        // Add the last chunk if it has content
-        if (currentChunk.trim().length > 0) {
-            chunks.push(currentChunk.trim());
-        }
-        
-        return chunks.filter(chunk => chunk.length > 0);
-    }
-
-    async combineAudioChunks(audioFiles, title) {
-        try {
-            console.log(`Combining ${audioFiles.length} audio chunks`);
-            
-            const finalAudioFileName = `audio_${Date.now()}_${title.replace(/[^a-z0-9]/gi, '_')}.mp3`;
-            const finalAudioPath = path.join(this.tempDir, finalAudioFileName);
-            
-            if (audioFiles.length === 1) {
-                // If only one chunk, just rename it
-                await fs.copyFile(audioFiles[0], finalAudioPath);
-            } else {
-                // Use FFmpeg to concatenate audio files
-                const inputList = audioFiles.map(file => `file '${file}'`).join('\n');
-                const listFilePath = path.join(this.tempDir, 'audio_list.txt');
-                
-                await fs.writeFile(listFilePath, inputList);
-                
-                const command = `ffmpeg -y -f concat -safe 0 -i "${listFilePath}" -c copy "${finalAudioPath}"`;
-                
-                await execAsync(command, { timeout: 60000 });
-                
-                // Clean up list file
-                await fs.unlink(listFilePath);
-            }
-            
-            console.log(`Audio chunks combined successfully: ${finalAudioFileName}`);
-            return finalAudioPath;
+            return audioFilePath;
             
         } catch (error) {
-            console.error('Failed to combine audio chunks:', error);
+            console.error('ElevenLabs API error:', error.response?.data || error.message);
             
-            // Fallback: return the first chunk if combination fails
-            if (audioFiles.length > 0) {
-                const fallbackPath = path.join(this.tempDir, `fallback_audio_${Date.now()}.mp3`);
-                await fs.copyFile(audioFiles[0], fallbackPath);
-                return fallbackPath;
+            if (error.response?.data instanceof Buffer) {
+                try {
+                    const errorText = error.response.data.toString();
+                    const errorObj = JSON.parse(errorText);
+                    console.error('ElevenLabs error details:', errorObj);
+                    
+                    if (errorObj.detail?.status === 'max_character_limit_exceeded') {
+                        throw new Error('ElevenLabs character limit exceeded. Please check your usage or upgrade your plan.');
+                    }
+                } catch (parseError) {
+                    console.error('Could not parse ElevenLabs error:', parseError);
+                }
             }
             
-            throw error;
+            throw new Error('Voiceover generation failed: ' + (error.response?.statusText || error.message));
         }
     }
 
@@ -651,13 +318,11 @@ class CompleteVideoGenerator {
                 images: []
             };
 
-            // Prioritize videos over static images for better visual experience
             if (this.pexelsKey) {
                 assets.videos = await this.downloadPexelsVideos(category, Math.max(8, sceneCount));
                 console.log(`Downloaded ${assets.videos.length} video clips`);
             }
 
-            // Get fewer images since we have videos
             if (this.pixabayKey && assets.videos.length < 3) {
                 assets.images = await this.downloadPixabayImages(category, 3);
                 console.log(`Downloaded ${assets.images.length} fallback images`);
@@ -677,18 +342,14 @@ class CompleteVideoGenerator {
 
         try {
             const searchTerms = {
-                'personal-finance': ['business meeting', 'office work', 'money counting', 'calculator', 'financial planning', 'bank', 'investment'],
-                'investing': ['stock market', 'trading floor', 'charts graphs', 'business growth', 'financial data', 'analysis', 'portfolio'],
-                'cryptocurrency': ['technology', 'computer screen', 'digital data', 'coding', 'futuristic', 'blockchain', 'trading'],
-                'artificial-intelligence': ['technology', 'robots', 'computer', 'data center', 'innovation', 'automation', 'machine learning'],
-                'startups': ['office space', 'teamwork', 'brainstorming', 'startup office', 'entrepreneurs', 'collaboration', 'innovation'],
-                'business': ['business meeting', 'office', 'professional', 'corporate', 'workplace', 'conference', 'presentation']
+                'personal-finance': ['business meeting', 'office work', 'money counting', 'calculator'],
+                'investing': ['stock market', 'trading floor', 'charts graphs', 'business growth'],
+                'cryptocurrency': ['technology', 'computer screen', 'digital data', 'coding']
             };
 
-            const terms = searchTerms[category] || searchTerms['business'];
+            const terms = searchTerms[category] || ['business meeting', 'office work'];
             const downloadedVideos = [];
             
-            // Try multiple search terms to get variety
             for (const term of terms) {
                 if (downloadedVideos.length >= count) break;
                 
@@ -699,7 +360,7 @@ class CompleteVideoGenerator {
                     },
                     params: {
                         query: term,
-                        per_page: Math.min(10, count - downloadedVideos.length),
+                        per_page: Math.min(5, count - downloadedVideos.length),
                         orientation: 'landscape'
                     },
                     timeout: 10000
@@ -709,17 +370,15 @@ class CompleteVideoGenerator {
                     for (const video of response.data.videos) {
                         if (downloadedVideos.length >= count) break;
                         
-                        // Get the best quality video file
                         const videoFile = video.video_files.find(file => 
                             file.quality === 'hd' && file.width >= 1280
-                        ) || video.video_files.find(file => file.quality === 'sd') || video.video_files[0];
+                        ) || video.video_files[0];
                         
                         if (videoFile && videoFile.link) {
                             const fileName = `pexels_${term.replace(/\s+/g, '_')}_${Date.now()}_${downloadedVideos.length}.mp4`;
                             const filePath = path.join(this.tempDir, fileName);
                             
                             try {
-                                console.log(`Downloading video: ${fileName}`);
                                 const videoResponse = await axios.get(videoFile.link, { 
                                     responseType: 'stream',
                                     timeout: 30000
@@ -742,7 +401,6 @@ class CompleteVideoGenerator {
                     }
                 }
                 
-                // Small delay between API calls
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
             
@@ -760,12 +418,9 @@ class CompleteVideoGenerator {
 
         try {
             const searchTerms = {
-                'personal-finance': 'business finance money savings',
-                'investing': 'investment stock market growth',
-                'cryptocurrency': 'cryptocurrency bitcoin blockchain',
-                'artificial-intelligence': 'artificial intelligence technology',
-                'startups': 'startup entrepreneur business',
-                'business': 'business professional corporate'
+                'personal-finance': 'business finance money',
+                'investing': 'investment stock market',
+                'cryptocurrency': 'cryptocurrency bitcoin'
             };
 
             const searchTerm = searchTerms[category] || 'business';
@@ -842,7 +497,6 @@ class CompleteVideoGenerator {
             
         } catch (error) {
             console.error('Video compilation failed:', error);
-            // Fallback to audio file
             const fallbackPath = path.join(this.outputDir, `audio_${Date.now()}.mp3`);
             await fs.copyFile(audioFile, fallbackPath);
             return fallbackPath;
@@ -850,7 +504,7 @@ class CompleteVideoGenerator {
     }
 
     async createVideoWithClips(audioFile, videos, outputPath, duration) {
-        const videoList = videos.slice(0, Math.min(8, videos.length));
+        const videoList = videos.slice(0, Math.min(6, videos.length));
         
         if (videoList.length === 0) {
             throw new Error('No video clips available for compilation');
@@ -874,7 +528,7 @@ class CompleteVideoGenerator {
             
             filterComplex += videoList.map((_, i) => `[v${i}]`).join('') + `concat=n=${videoList.length}:v=1:a=0[outv]`;
             
-            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0,highpass=f=80,lowpass=f=15000" -t ${duration} "${outputPath}"`;
+            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0" -t ${duration} "${outputPath}"`;
             
             console.log('Executing FFmpeg video compilation...');
             await execAsync(command, { timeout: 300000 });
@@ -904,7 +558,7 @@ class CompleteVideoGenerator {
             
             filterComplex += images.map((_, i) => `[v${i}]`).join('') + `concat=n=${images.length}:v=1:a=0[outv]`;
             
-            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0,highpass=f=80,lowpass=f=15000" -t ${duration} "${outputPath}"`;
+            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0" -t ${duration} "${outputPath}"`;
             
             await execAsync(command, { timeout: 300000 });
             console.log('Image slideshow video created successfully');
@@ -919,7 +573,7 @@ class CompleteVideoGenerator {
         try {
             console.log('Creating simple video with gradient background');
             
-            const command = `ffmpeg -y -i "${audioFile}" -f lavfi -i "color=gradient=blue:navy:1920:1080:d=${duration}" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0,highpass=f=80,lowpass=f=15000" -t ${duration} -shortest "${outputPath}"`;
+            const command = `ffmpeg -y -i "${audioFile}" -f lavfi -i "color=gradient=blue:navy:1920:1080:d=${duration}" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0" -t ${duration} -shortest "${outputPath}"`;
             
             await execAsync(command, { timeout: 180000 });
             console.log('Simple video with audio created successfully');
@@ -933,7 +587,7 @@ class CompleteVideoGenerator {
     async getFileSize(filePath) {
         try {
             const stats = await fs.stat(filePath);
-            return Math.round(stats.size / 1024 / 1024 * 100) / 100; // MB
+            return Math.round(stats.size / 1024 / 1024 * 100) / 100;
         } catch (error) {
             return 0;
         }
@@ -985,7 +639,7 @@ class SecureVault {
     }
 }
 
-// Robust Authentication Manager
+// Authentication Manager
 class AuthenticationManager {
     constructor() {
         this.adminEmail = ADMIN_EMAIL;
@@ -1001,9 +655,7 @@ class AuthenticationManager {
         try {
             console.log(`Login attempt for: ${email}`);
             
-            // Admin authentication with environment variable fallback
             if (email === this.adminEmail) {
-                // Try direct password comparison first
                 if (password === this.adminPasswordPlain) {
                     console.log('Admin authenticated via environment variable');
                     return {
@@ -1014,7 +666,6 @@ class AuthenticationManager {
                     };
                 }
                 
-                // Try database authentication
                 if (this.db) {
                     const adminUser = await this.db.collection('users').findOne({ 
                         email: this.adminEmail,
@@ -1036,7 +687,6 @@ class AuthenticationManager {
                 }
             }
             
-            // Regular user authentication
             if (this.db) {
                 const user = await this.db.collection('users').findOne({ email });
                 if (user && await bcrypt.compare(password, user.password)) {
@@ -1065,36 +715,15 @@ class AuthenticationManager {
         }
 
         try {
-            // Check if admin already exists by email (any role)
             const existingUser = await this.db.collection('users').findOne({ 
                 email: this.adminEmail
             });
 
             if (existingUser) {
-                console.log('User with admin email already exists - updating to admin role and password');
-                
-                // Update existing user to admin role with new password
-                const hashedPassword = await bcrypt.hash(this.adminPasswordPlain, 12);
-                
-                await this.db.collection('users').updateOne(
-                    { email: this.adminEmail },
-                    { 
-                        $set: { 
-                            password: hashedPassword,
-                            role: 'admin',
-                            plan: 'enterprise',
-                            videosLimit: 999999,
-                            isActive: true,
-                            updatedAt: new Date()
-                        }
-                    }
-                );
-                
-                console.log('Admin user updated successfully');
+                console.log('Admin user already exists');
                 return existingUser;
             }
 
-            // Create new admin user
             const hashedPassword = await bcrypt.hash(this.adminPasswordPlain, 12);
             
             const adminUser = {
@@ -1116,7 +745,7 @@ class AuthenticationManager {
             
         } catch (error) {
             if (error.code === 11000) {
-                console.log('Admin user already exists (duplicate key), continuing with authentication...');
+                console.log('Admin user already exists (duplicate key)');
                 return null;
             }
             console.error('Failed to initialize admin user:', error);
@@ -1125,600 +754,10 @@ class AuthenticationManager {
     }
 }
 
-// Enhanced API key management
+// API key management
 async function getDecryptedApiKeys() {
     if (!db) return {};
     
     try {
         const apiKeys = await db.collection('apikeys').find({ isActive: true }).toArray();
         const decryptedKeys = {};
-        let successCount = 0;
-        
-        for (const key of apiKeys) {
-            try {
-                const decryptedKey = SecureVault.decrypt(key.encryptedKey);
-                if (decryptedKey) {
-                    decryptedKeys[key.service] = decryptedKey;
-                    successCount++;
-                } else {
-                    console.error(`Failed to decrypt ${key.service} key`);
-                }
-            } catch (error) {
-                console.error(`Error decrypting ${key.service} key:`, error.message);
-            }
-        }
-        
-        console.log(`Successfully decrypted ${successCount} API keys`);
-        return decryptedKeys;
-        
-    } catch (error) {
-        console.error('Failed to get API keys:', error);
-        return {};
-    }
-}
-
-// Middleware
-app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false
-}));
-
-app.use(cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Rate limiting
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per window
-    message: { error: 'Too many authentication attempts, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
-app.use('/api/auth', authLimiter);
-app.use('/api', generalLimiter);
-
-// Database connection
-async function connectToDatabase() {
-    try {
-        if (!MONGODB_URI) {
-            throw new Error('MONGODB_URI environment variable is not set');
-        }
-
-        console.log('Connecting to MongoDB...');
-        const client = new MongoClient(MONGODB_URI, {
-            maxPoolSize: 10,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
-        });
-
-        await client.connect();
-        db = client.db('ai_hollywood_studio');
-        
-        console.log('MongoDB connected successfully');
-        
-        // Initialize authentication manager
-        authManager = new AuthenticationManager();
-        authManager.setDatabase(db);
-        
-        await initializeDatabase();
-        
-    } catch (error) {
-        console.error('Database connection failed:', error);
-        throw error;
-    }
-}
-
-async function initializeDatabase() {
-    try {
-        console.log('Initializing database...');
-        
-        // Create indexes
-        await db.collection('users').createIndex({ email: 1 }, { unique: true });
-        await db.collection('apikeys').createIndex({ service: 1 }, { unique: true });
-        
-        // Initialize admin user
-        await authManager.initializeAdminUser();
-        
-        console.log('Database initialization completed');
-        
-    } catch (error) {
-        console.error('Database initialization failed:', error);
-    }
-}
-
-// Authentication middleware
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({ error: 'Access token required' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ error: 'Invalid token' });
-        }
-        req.user = user;
-        next();
-    });
-}
-
-function requireAdmin(req, res, next) {
-    if (!req.user || req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-    next();
-}
-
-// Health check endpoint
-app.get('/api/health', async (req, res) => {
-    try {
-        // Check FFmpeg availability
-        let ffmpegStatus = 'not_available';
-        try {
-            await execAsync('ffmpeg -version');
-            ffmpegStatus = 'available';
-        } catch (error) {
-            ffmpegStatus = 'not_available';
-        }
-
-        const healthStatus = {
-            status: 'healthy',
-            timestamp: new Date().toISOString(),
-            version: '1.0.0',
-            environment: process.env.NODE_ENV || 'production',
-            compliance: 'terms_compliant',
-            message: 'AI Hollywood Studio Backend is running!',
-            database: db ? 'connected' : 'disconnected',
-            mongoConfigured: !!MONGODB_URI,
-            adminEmail: ADMIN_EMAIL,
-            ffmpeg: ffmpegStatus
-        };
-
-        res.json(healthStatus);
-    } catch (error) {
-        res.status(500).json({ 
-            status: 'unhealthy', 
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-// Demo endpoint for authentication status
-app.get('/api/demo/status', (req, res) => {
-    res.json({
-        message: 'AI Hollywood Studio Backend Demo',
-        timestamp: new Date().toISOString(),
-        authentication: {
-            adminEmail: ADMIN_EMAIL,
-            adminPassword: ADMIN_PASSWORD,
-            system: 'Enhanced with 100k character support'
-        },
-        features: [
-            'Script Generation (Enhanced for 100k chars)',
-            'ElevenLabs Voiceover (Chunked Processing)',
-            'Pexels Stock Videos',
-            'Pixabay Stock Images',
-            'FFmpeg Compilation'
-        ]
-    });
-});
-
-// Authentication routes
-app.post('/api/auth/register', async (req, res) => {
-    try {
-        const { email, password, plan = 'free' } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
-        }
-
-        if (!db) {
-            return res.status(500).json({ error: 'Database not available' });
-        }
-
-        // Check if user already exists
-        const existingUser = await db.collection('users').findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ error: 'User already exists' });
-        }
-
-        // Hash password and create user
-        const hashedPassword = await bcrypt.hash(password, 12);
-        
-        const videoLimits = {
-            'free': 3,
-            'pro': 50,
-            'enterprise': 999999
-        };
-
-        const userData = {
-            email,
-            password: hashedPassword,
-            role: 'user',
-            plan,
-            videosUsed: 0,
-            videosLimit: videoLimits[plan] || videoLimits['free'],
-            isActive: true,
-            createdAt: new Date(),
-            compliance: 'terms_compliant'
-        };
-
-        const result = await db.collection('users').insertOne(userData);
-        
-        // Generate token
-        const token = jwt.sign(
-            { 
-                email, 
-                role: userData.role, 
-                userId: result.insertedId,
-                plan: userData.plan 
-            }, 
-            JWT_SECRET, 
-            { expiresIn: '7d' }
-        );
-
-        res.status(201).json({
-            success: true,
-            message: 'User registered successfully',
-            token,
-            user: {
-                email,
-                role: userData.role,
-                plan: userData.plan,
-                videosLimit: userData.videosLimit
-            }
-        });
-
-    } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ error: 'Registration failed' });
-    }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
-        }
-
-        const user = await authManager.authenticateUser(email, password);
-        
-        const token = jwt.sign(
-            { 
-                email: user.email, 
-                role: user.role, 
-                plan: user.plan 
-            }, 
-            JWT_SECRET, 
-            { expiresIn: '7d' }
-        );
-
-        res.json({
-            success: true,
-            message: 'Login successful',
-            token,
-            user: {
-                email: user.email,
-                role: user.role,
-                plan: user.plan
-            }
-        });
-
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(401).json({ error: 'Invalid credentials' });
-    }
-});
-
-// Video generation endpoint
-app.post('/api/videos/generate', authenticateToken, async (req, res) => {
-    try {
-        console.log(`Starting video generation for user: ${req.user.email}`);
-        
-        const { title, category, duration, tone, voiceStyle, visualStyle } = req.body;
-        
-        console.log(`Video details: ${title}, ${category}, ${duration} minutes`);
-
-        if (!title || !category || !duration) {
-            return res.status(400).json({ error: 'Title, category, and duration are required' });
-        }
-
-        // Get API keys
-        const apiKeys = await getDecryptedApiKeys();
-        
-        if (Object.keys(apiKeys).length === 0) {
-            return res.status(500).json({ 
-                error: 'API keys not configured. Please contact administrator.' 
-            });
-        }
-
-        // Initialize video generator
-        const generator = new CompleteVideoGenerator(apiKeys);
-        
-        // Generate video
-        const result = await generator.generateVideo({
-            title,
-            category,
-            duration: parseInt(duration),
-            tone: tone || 'professional',
-            voiceStyle: voiceStyle || 'professional-male',
-            visualStyle: visualStyle || 'corporate'
-        });
-
-        console.log(`Video generated successfully: ${title}`);
-
-        res.json({
-            success: true,
-            message: 'Video generated successfully with enhanced system',
-            video: result,
-            downloadUrl: result.downloadUrl
-        });
-
-    } catch (error) {
-        console.error('Video generation error:', error);
-        res.status(500).json({ 
-            error: 'Video generation failed', 
-            details: error.message 
-        });
-    }
-});
-
-// API key management endpoints
-app.get('/api/admin/apikeys', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        if (!db) {
-            return res.status(500).json({ error: 'Database not available' });
-        }
-
-        const apiKeys = await db.collection('apikeys').find({ isActive: true }).toArray();
-        
-        const sanitizedKeys = apiKeys.map(key => ({
-            _id: key._id,
-            service: key.service,
-            createdAt: key.createdAt,
-            isActive: key.isActive,
-            masked: key.encryptedKey ? `${key.service}_${'*'.repeat(32)}` : 'Not set'
-        }));
-
-        res.json({ success: true, apiKeys: sanitizedKeys });
-
-    } catch (error) {
-        console.error('Failed to fetch API keys:', error);
-        res.status(500).json({ error: 'Failed to fetch API keys' });
-    }
-});
-
-app.post('/api/admin/apikeys', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { service, apiKey } = req.body;
-
-        if (!service || !apiKey) {
-            return res.status(400).json({ error: 'Service and API key are required' });
-        }
-
-        if (!db) {
-            return res.status(500).json({ error: 'Database not available' });
-        }
-
-        // Encrypt the API key
-        const encryptedKey = SecureVault.encrypt(apiKey);
-
-        // Update or insert API key
-        await db.collection('apikeys').updateOne(
-            { service },
-            { $set: { isActive: false, deactivatedAt: new Date() } }
-        );
-
-        console.log(`API key deactivated for service: ${service}`);
-
-        res.json({
-            success: true,
-            message: `API key for ${service} deactivated successfully`
-        });
-
-    } catch (error) {
-        console.error('Failed to delete API key:', error);
-        res.status(500).json({ error: 'Failed to delete API key' });
-    }
-});
-
-// File download endpoint
-app.get('/download/:filename', (req, res) => {
-    try {
-        const filename = req.params.filename;
-        const filePath = path.join(__dirname, 'generated_videos', filename);
-        
-        // Security check
-        if (!filename || filename.includes('..') || filename.includes('/')) {
-            return res.status(400).json({ error: 'Invalid filename' });
-        }
-        
-        // Check if file exists
-        if (!fsSync.existsSync(filePath)) {
-            return res.status(404).json({ error: 'File not found' });
-        }
-        
-        // Set appropriate headers
-        const ext = path.extname(filename).toLowerCase();
-        const contentType = ext === '.mp4' ? 'video/mp4' : 'audio/mpeg';
-        
-        res.setHeader('Content-Type', contentType);
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        
-        // Stream the file
-        const fileStream = fsSync.createReadStream(filePath);
-        fileStream.pipe(res);
-        
-    } catch (error) {
-        console.error('Download error:', error);
-        res.status(500).json({ error: 'Download failed' });
-    }
-});
-
-// Debug endpoints (remove in production)
-app.get('/api/debug/admin', async (req, res) => {
-    if (db && authManager) {
-        const user = await db.collection('users').findOne({ email: authManager.adminEmail });
-        res.json({
-            userExists: !!user,
-            userRole: user?.role,
-            userEmail: user?.email,
-            adminPassword: authManager.adminPasswordPlain,
-            adminEmail: authManager.adminEmail,
-            environmentVariables: {
-                ADMIN_PASSWORD: !!ADMIN_PASSWORD,
-                ADMIN_EMAIL: !!ADMIN_EMAIL
-            }
-        });
-    } else {
-        res.json({ error: 'No database connection' });
-    }
-});
-
-app.post('/api/debug/reset-admin', async (req, res) => {
-    try {
-        if (!db || !authManager) {
-            return res.status(500).json({ error: 'Database not available' });
-        }
-
-        const hashedPassword = await bcrypt.hash(authManager.adminPasswordPlain, 12);
-        
-        const result = await db.collection('users').updateOne(
-            { email: authManager.adminEmail },
-            { 
-                $set: { 
-                    password: hashedPassword,
-                    role: 'admin',
-                    updatedAt: new Date()
-                }
-            }
-        );
-
-        res.json({
-            success: true,
-            message: 'Admin password reset successfully',
-            modifiedCount: result.modifiedCount,
-            newPassword: authManager.adminPasswordPlain
-        });
-
-    } catch (error) {
-        console.error('Password reset failed:', error);
-        res.status(500).json({ error: 'Password reset failed' });
-    }
-});
-
-// Error handling middleware
-app.use((error, req, res, next) => {
-    console.error('Server error:', error);
-    res.status(500).json({ 
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-    });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-    res.status(404).json({ 
-        error: 'Endpoint not found',
-        availableEndpoints: [
-            'GET /api/health',
-            'GET /api/demo/status',
-            'POST /api/auth/register',
-            'POST /api/auth/login',
-            'POST /api/videos/generate',
-            'GET /download/:filename'
-        ]
-    });
-});
-
-// Server startup
-async function startServer() {
-    try {
-        console.log('Starting AI Hollywood Studio Backend...');
-        
-        await connectToDatabase();
-        
-        app.listen(PORT, () => {
-            console.log('AI Hollywood Studio Backend LIVE!');
-            console.log(`Server running on port ${PORT}`);
-            console.log(`Version: Enhanced for 100k Character Support`);
-            console.log(`Admin login: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
-            console.log(`Database: ${db ? 'Connected' : 'Disconnected'}`);
-        });
-        
-    } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-    }
-}
-
-// Handle process termination
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully');
-    process.exit(0);
-});
-
-process.on('SIGINT', () => {
-    console.log('SIGINT received, shutting down gracefully');
-    process.exit(0);
-});
-
-// Start the server
-startServer();One(
-            { service },
-            {
-                $set: {
-                    service,
-                    encryptedKey,
-                    isActive: true,
-                    updatedAt: new Date()
-                },
-                $setOnInsert: {
-                    createdAt: new Date()
-                }
-            },
-            { upsert: true }
-        );
-
-        console.log(`API key updated for service: ${service}`);
-
-        res.json({
-            success: true,
-            message: `API key for ${service} updated successfully`
-        });
-
-    } catch (error) {
-        console.error('Failed to save API key:', error);
-        res.status(500).json({ error: 'Failed to save API key' });
-    }
-});
-
-app.delete('/api/admin/apikeys/:service', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { service } = req.params;
-
-        if (!db) {
-            return res.status(500).json({ error: 'Database not available' });
-        }
-
-        await db.collection('apikeys').update
