@@ -1,22 +1,13 @@
 require('dotenv').config();
 
-// Debug environment variables
-console.log('Environment check - MongoDB URI exists:', !!process.env.MONGODB_URI);
-console.log('Environment check - NODE_ENV:', process.env.NODE_ENV);
-console.log('Environment check - Admin Email:', process.env.ADMIN_EMAIL);
-
 const express = require('express');
-const app = express();
-app.set('trust proxy', 1);
-
-// Required dependencies
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { MongoClient, ObjectId } = require('mongodb');
+const { MongoClient } = require('mongodb');
 const axios = require('axios');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -25,6 +16,8 @@ const { exec } = require('child_process');
 const { promisify } = require('util');
 
 const execAsync = promisify(exec);
+const app = express();
+app.set('trust proxy', 1);
 
 // Environment variables
 const PORT = process.env.PORT || 8080;
@@ -34,11 +27,12 @@ const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-encryption-key';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'casteroai001@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
-// Database and authentication
 let db;
 let authManager;
 
-// Enhanced Video Generation System
+console.log('Starting AI Hollywood Studio Backend...');
+
+// Video Generator Class
 class CompleteVideoGenerator {
     constructor(apiKeys) {
         this.elevenLabsKey = apiKeys.elevenlabs;
@@ -50,15 +44,13 @@ class CompleteVideoGenerator {
 
     async generateVideo({ title, category, duration, tone, voiceStyle, visualStyle }) {
         try {
-            console.log(`Starting complete video generation: ${title}`);
+            console.log(`Starting video generation: ${title}`);
             
             await this.ensureDirectories();
             const script = await this.generateScript(title, category, duration, tone);
             const audioFile = await this.generateVoiceover(script.content, voiceStyle, title);
             const mediaAssets = await this.gatherMediaAssets(category, script.scenes);
             const videoFile = await this.compileVideo(audioFile, mediaAssets, title, duration);
-            
-            console.log(`Video generation completed: ${videoFile}`);
             
             return {
                 success: true,
@@ -86,155 +78,39 @@ class CompleteVideoGenerator {
     }
 
     async generateScript(title, category, duration, tone) {
-        const templates = {
-            'personal-finance': {
-                intro: `Welcome to your complete guide on ${title}. Today, we'll explore proven strategies that can transform your financial future and help you build lasting wealth.`,
-                mainSections: [
-                    'Understanding the fundamentals and why this matters for your financial health',
-                    'Common mistakes people make and how to avoid them', 
-                    'Step-by-step implementation strategies',
-                    'Real-world examples and case studies',
-                    'Advanced tips for maximizing results',
-                    'Long-term planning and wealth building strategies',
-                    'Tax optimization and legal considerations',
-                    'Emergency fund planning and risk management'
-                ],
-                conclusion: `Remember, financial success is a journey, not a destination. Start implementing these strategies today, and you'll be amazed at the progress you can make. Subscribe for more financial wisdom, and let me know in the comments which strategy you'll implement first.`
-            },
-            'investing': {
-                intro: `Today we're diving deep into ${title}. The investment landscape offers incredible opportunities for those who understand the fundamentals and apply them consistently.`,
-                mainSections: [
-                    'Market analysis and current opportunities',
-                    'Risk assessment and management strategies',
-                    'Portfolio diversification techniques',
-                    'Timing and execution strategies',
-                    'Long-term wealth building principles',
-                    'Dollar-cost averaging and systematic investing',
-                    'Tax-advantaged investment accounts',
-                    'International diversification strategies',
-                    'Alternative investment options',
-                    'Performance monitoring and rebalancing'
-                ],
-                conclusion: `Successful investing requires patience, discipline, and continuous learning. These principles have helped countless investors build substantial wealth over time. Start with what you can afford, stay consistent, and let compound growth work its magic.`
-            },
-            'cryptocurrency': {
-                intro: `Cryptocurrency represents one of the most significant financial innovations of our time. Understanding ${title} is crucial for anyone looking to participate in this digital revolution responsibly.`,
-                mainSections: [
-                    'Technology fundamentals and blockchain basics',
-                    'Market dynamics and price factors',
-                    'Security best practices and wallet management',
-                    'Trading strategies and technical analysis',
-                    'Future trends and regulatory considerations',
-                    'DeFi protocols and yield farming',
-                    'NFTs and digital asset ownership',
-                    'Institutional adoption and market maturity',
-                    'Risk management in volatile markets',
-                    'Long-term investment strategies'
-                ],
-                conclusion: `The crypto space moves fast, but with the right knowledge and careful approach, you can navigate it successfully. Stay informed, never invest more than you can afford to lose, and always prioritize security in your crypto journey.`
-            }
-        };
-
-        const template = templates[category] || templates['personal-finance'];
         const wordsPerMinute = 150;
         const targetWords = duration * wordsPerMinute;
         
-        console.log(`Generating script for ${duration} minutes (target: ${targetWords} words)`);
+        const baseContent = `Welcome to your guide on ${title}. Today we'll explore proven strategies and insights that can help you understand this topic better. This comprehensive overview will provide you with practical knowledge and actionable information. Let's dive into the key concepts and examine what makes this subject important in today's world.`;
         
-        const introWords = Math.floor(targetWords * 0.15);
-        const conclusionWords = Math.floor(targetWords * 0.10);
-        const mainContentWords = targetWords - introWords - conclusionWords;
+        let script = baseContent;
+        const currentWords = baseContent.split(' ').length;
         
-        const expandedIntro = this.expandContent(template.intro, introWords, tone);
+        // Expand script to target length
+        const expansionText = 'Research shows that understanding these fundamentals is crucial for success. Industry experts consistently demonstrate that systematic approaches yield better results than random methods. Data analysis reveals patterns that help optimize outcomes and maximize effectiveness.';
         
-        const wordsPerSection = Math.floor(mainContentWords / template.mainSections.length);
-        const expandedSections = template.mainSections.map((section, index) => {
-            const sectionContent = this.expandSection(section, wordsPerSection, tone, category);
-            return {
-                title: section,
-                content: sectionContent,
-                timing: `${Math.floor(index * (duration / template.mainSections.length))}-${Math.floor((index + 1) * (duration / template.mainSections.length))} minutes`
-            };
-        });
+        while (script.split(' ').length < targetWords) {
+            script += ' ' + expansionText;
+        }
         
-        const expandedConclusion = this.expandContent(template.conclusion, conclusionWords, tone);
+        // Trim to exact length
+        const words = script.split(' ');
+        if (words.length > targetWords) {
+            script = words.slice(0, targetWords).join(' ');
+        }
         
-        const fullContent = [
-            expandedIntro,
-            ...expandedSections.map(s => s.content),
-            expandedConclusion
-        ].join('\n\n');
+        script += ' Thank you for watching. Please subscribe for more valuable content and let me know your thoughts in the comments below.';
         
-        console.log(`Generated script: ${fullContent.split(' ').length} words, ${fullContent.length} characters for ${duration} minutes`);
+        console.log(`Generated script: ${script.split(' ').length} words, ${script.length} characters`);
         
         return {
             title,
-            intro: expandedIntro,
-            sections: expandedSections,
-            conclusion: expandedConclusion,
-            content: fullContent,
-            scenes: expandedSections.length + 2,
+            content: script,
+            scenes: 5,
             duration: duration,
-            wordCount: fullContent.split(' ').length,
-            characterCount: fullContent.length
+            wordCount: script.split(' ').length,
+            characterCount: script.length
         };
-    }
-
-    expandContent(baseContent, targetWords, tone) {
-        const expansions = [
-            'Comprehensive research across multiple industries reveals specific patterns that distinguish high performers from average practitioners.',
-            'Data analysis from leading institutions shows measurable differences in outcomes when systematic approaches are implemented correctly.',
-            'Case study documentation spanning decades provides clear evidence of which methodologies produce sustainable long-term results.',
-            'Professional development experts emphasize that skill mastery requires both theoretical understanding and practical application.',
-            'Market analysis indicates that individuals who invest time in foundational knowledge consistently outperform those who focus solely on tactics.'
-        ];
-
-        let expandedContent = baseContent;
-        let currentWords = baseContent.split(' ').length;
-        
-        let expansionIndex = 0;
-        while (currentWords < targetWords && expansionIndex < expansions.length) {
-            expandedContent += ' ' + expansions[expansionIndex];
-            currentWords = expandedContent.split(' ').length;
-            expansionIndex++;
-        }
-        
-        const words = expandedContent.split(' ');
-        if (words.length > targetWords) {
-            expandedContent = words.slice(0, targetWords).join(' ');
-        }
-        
-        return expandedContent;
-    }
-
-    expandSection(sectionTitle, targetWords, tone, category) {
-        const examples = [
-            'For instance, statistical analysis shows that systematic approaches achieve measurably better outcomes than ad-hoc methods.',
-            'Research demonstrates that organizations implementing structured methodologies see consistent improvements in performance metrics.',
-            'Case studies reveal that companies following established frameworks achieve their objectives 3x more frequently than those without clear systems.'
-        ];
-
-        let content = `Examining ${sectionTitle.toLowerCase()} reveals several critical success factors that determine outcomes. `;
-        content += examples[0] + ' ';
-        
-        let currentWords = content.split(' ').length;
-        
-        const fillerText = 'Implementation methodology requires systematic evaluation of multiple interconnected variables that influence final outcomes. Best practices documentation emphasizes the importance of establishing clear metrics before beginning any optimization process.';
-        
-        while (currentWords < targetWords) {
-            const remainingWords = targetWords - currentWords;
-            const fillerWords = fillerText.split(' ');
-            
-            if (remainingWords >= fillerWords.length) {
-                content += fillerText + ' ';
-                currentWords += fillerWords.length;
-            } else {
-                content += fillerWords.slice(0, remainingWords).join(' ');
-                break;
-            }
-        }
-        
-        return content.trim();
     }
 
     async generateVoiceover(script, voiceStyle, title) {
@@ -243,8 +119,7 @@ class CompleteVideoGenerator {
         }
 
         try {
-            console.log(`Generating voiceover with ElevenLabs - Voice: ${voiceStyle}`);
-            console.log(`Script length: ${script.length} characters`);
+            console.log(`Generating voiceover - Voice: ${voiceStyle}, Characters: ${script.length}`);
             
             const voiceIds = {
                 'professional-male': '29vD33N1CtxCmqQRPOHJ',
@@ -254,7 +129,6 @@ class CompleteVideoGenerator {
             };
 
             const selectedVoiceId = voiceIds[voiceStyle] || voiceIds['professional-male'];
-            console.log(`Using voice ID: ${selectedVoiceId} for style: ${voiceStyle}`);
             
             const response = await axios.post(
                 `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
@@ -284,131 +158,84 @@ class CompleteVideoGenerator {
             const audioFilePath = path.join(this.tempDir, audioFileName);
             
             await fs.writeFile(audioFilePath, response.data);
-            console.log(`Voiceover generated successfully: ${audioFileName} (${Math.round(response.data.byteLength / 1024)} KB)`);
+            console.log(`Voiceover generated: ${audioFileName}`);
             
             return audioFilePath;
             
         } catch (error) {
             console.error('ElevenLabs API error:', error.response?.data || error.message);
-            
-            if (error.response?.data instanceof Buffer) {
-                try {
-                    const errorText = error.response.data.toString();
-                    const errorObj = JSON.parse(errorText);
-                    console.error('ElevenLabs error details:', errorObj);
-                    
-                    if (errorObj.detail?.status === 'max_character_limit_exceeded') {
-                        throw new Error('ElevenLabs character limit exceeded. Please check your usage or upgrade your plan.');
-                    }
-                } catch (parseError) {
-                    console.error('Could not parse ElevenLabs error:', parseError);
-                }
-            }
-            
             throw new Error('Voiceover generation failed: ' + (error.response?.statusText || error.message));
         }
     }
 
     async gatherMediaAssets(category, sceneCount) {
-        try {
-            console.log('Gathering media assets...');
-            
-            const assets = {
-                videos: [],
-                images: []
-            };
+        const assets = { videos: [], images: [] };
 
-            if (this.pexelsKey) {
-                assets.videos = await this.downloadPexelsVideos(category, Math.max(8, sceneCount));
-                console.log(`Downloaded ${assets.videos.length} video clips`);
-            }
-
-            if (this.pixabayKey && assets.videos.length < 3) {
-                assets.images = await this.downloadPixabayImages(category, 3);
-                console.log(`Downloaded ${assets.images.length} fallback images`);
-            }
-
-            console.log(`Total media assets: ${assets.videos.length} videos, ${assets.images.length} images`);
-            return assets;
-            
-        } catch (error) {
-            console.error('Media gathering failed:', error);
-            return { videos: [], images: [] };
+        if (this.pexelsKey) {
+            assets.videos = await this.downloadPexelsVideos(category, 5);
         }
+
+        if (this.pixabayKey && assets.videos.length < 3) {
+            assets.images = await this.downloadPixabayImages(category, 3);
+        }
+
+        return assets;
     }
 
     async downloadPexelsVideos(category, count) {
         if (!this.pexelsKey) return [];
 
         try {
-            const searchTerms = {
-                'personal-finance': ['business meeting', 'office work', 'money counting', 'calculator'],
-                'investing': ['stock market', 'trading floor', 'charts graphs', 'business growth'],
-                'cryptocurrency': ['technology', 'computer screen', 'digital data', 'coding']
-            };
+            const searchTerm = category === 'cryptocurrency' ? 'technology' : 'business';
+            
+            const response = await axios.get('https://api.pexels.com/videos/search', {
+                headers: { 'Authorization': this.pexelsKey },
+                params: {
+                    query: searchTerm,
+                    per_page: count,
+                    orientation: 'landscape'
+                },
+                timeout: 10000
+            });
 
-            const terms = searchTerms[category] || ['business meeting', 'office work'];
             const downloadedVideos = [];
             
-            for (const term of terms) {
-                if (downloadedVideos.length >= count) break;
-                
-                console.log(`Searching Pexels for: ${term}`);
-                const response = await axios.get('https://api.pexels.com/videos/search', {
-                    headers: {
-                        'Authorization': this.pexelsKey
-                    },
-                    params: {
-                        query: term,
-                        per_page: Math.min(5, count - downloadedVideos.length),
-                        orientation: 'landscape'
-                    },
-                    timeout: 10000
-                });
-
-                if (response.data.videos && response.data.videos.length > 0) {
-                    for (const video of response.data.videos) {
-                        if (downloadedVideos.length >= count) break;
+            if (response.data.videos) {
+                for (let i = 0; i < Math.min(response.data.videos.length, count); i++) {
+                    const video = response.data.videos[i];
+                    const videoFile = video.video_files.find(file => file.quality === 'hd') || video.video_files[0];
+                    
+                    if (videoFile?.link) {
+                        const fileName = `pexels_video_${Date.now()}_${i}.mp4`;
+                        const filePath = path.join(this.tempDir, fileName);
                         
-                        const videoFile = video.video_files.find(file => 
-                            file.quality === 'hd' && file.width >= 1280
-                        ) || video.video_files[0];
-                        
-                        if (videoFile && videoFile.link) {
-                            const fileName = `pexels_${term.replace(/\s+/g, '_')}_${Date.now()}_${downloadedVideos.length}.mp4`;
-                            const filePath = path.join(this.tempDir, fileName);
+                        try {
+                            const videoResponse = await axios.get(videoFile.link, { 
+                                responseType: 'stream',
+                                timeout: 30000
+                            });
                             
-                            try {
-                                const videoResponse = await axios.get(videoFile.link, { 
-                                    responseType: 'stream',
-                                    timeout: 30000
-                                });
-                                const writeStream = fsSync.createWriteStream(filePath);
-                                
-                                await new Promise((resolve, reject) => {
-                                    videoResponse.data.pipe(writeStream);
-                                    writeStream.on('finish', resolve);
-                                    writeStream.on('error', reject);
-                                    setTimeout(reject, 30000);
-                                });
-                                
-                                downloadedVideos.push(filePath);
-                                console.log(`Successfully downloaded: ${fileName}`);
-                            } catch (downloadError) {
-                                console.error(`Failed to download video ${fileName}:`, downloadError.message);
-                            }
+                            const writeStream = fsSync.createWriteStream(filePath);
+                            
+                            await new Promise((resolve, reject) => {
+                                videoResponse.data.pipe(writeStream);
+                                writeStream.on('finish', resolve);
+                                writeStream.on('error', reject);
+                                setTimeout(reject, 30000);
+                            });
+                            
+                            downloadedVideos.push(filePath);
+                        } catch (downloadError) {
+                            console.error(`Failed to download video ${fileName}`);
                         }
                     }
                 }
-                
-                await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            console.log(`Successfully downloaded ${downloadedVideos.length} videos`);
             return downloadedVideos;
             
         } catch (error) {
-            console.error('Pexels video download failed:', error);
+            console.error('Pexels download failed:', error);
             return [];
         }
     }
@@ -417,13 +244,7 @@ class CompleteVideoGenerator {
         if (!this.pixabayKey) return [];
 
         try {
-            const searchTerms = {
-                'personal-finance': 'business finance money',
-                'investing': 'investment stock market',
-                'cryptocurrency': 'cryptocurrency bitcoin'
-            };
-
-            const searchTerm = searchTerms[category] || 'business';
+            const searchTerm = category === 'cryptocurrency' ? 'technology' : 'business';
             
             const response = await axios.get('https://pixabay.com/api/', {
                 params: {
@@ -431,57 +252,53 @@ class CompleteVideoGenerator {
                     q: searchTerm,
                     image_type: 'photo',
                     orientation: 'horizontal',
-                    min_width: 1280,
-                    per_page: count,
-                    safesearch: 'true'
+                    per_page: count
                 },
                 timeout: 10000
             });
 
             const downloadedImages = [];
             
-            for (let i = 0; i < Math.min(response.data.hits.length, count); i++) {
-                const image = response.data.hits[i];
-                const imageUrl = image.webformatURL;
-                
-                const fileName = `pixabay_image_${Date.now()}_${i}.jpg`;
-                const filePath = path.join(this.tempDir, fileName);
-                
-                try {
-                    const imageResponse = await axios.get(imageUrl, { 
-                        responseType: 'stream',
-                        timeout: 15000
-                    });
-                    const writeStream = fsSync.createWriteStream(filePath);
+            if (response.data.hits) {
+                for (let i = 0; i < Math.min(response.data.hits.length, count); i++) {
+                    const image = response.data.hits[i];
+                    const fileName = `pixabay_image_${Date.now()}_${i}.jpg`;
+                    const filePath = path.join(this.tempDir, fileName);
                     
-                    await new Promise((resolve, reject) => {
-                        imageResponse.data.pipe(writeStream);
-                        writeStream.on('finish', resolve);
-                        writeStream.on('error', reject);
-                        setTimeout(reject, 15000);
-                    });
-                    
-                    downloadedImages.push(filePath);
-                } catch (downloadError) {
-                    console.error(`Failed to download image ${fileName}:`, downloadError.message);
+                    try {
+                        const imageResponse = await axios.get(image.webformatURL, { 
+                            responseType: 'stream',
+                            timeout: 15000
+                        });
+                        
+                        const writeStream = fsSync.createWriteStream(filePath);
+                        
+                        await new Promise((resolve, reject) => {
+                            imageResponse.data.pipe(writeStream);
+                            writeStream.on('finish', resolve);
+                            writeStream.on('error', reject);
+                            setTimeout(reject, 15000);
+                        });
+                        
+                        downloadedImages.push(filePath);
+                    } catch (downloadError) {
+                        console.error(`Failed to download image ${fileName}`);
+                    }
                 }
             }
             
             return downloadedImages;
             
         } catch (error) {
-            console.error('Pixabay image download failed:', error);
+            console.error('Pixabay download failed:', error);
             return [];
         }
     }
 
     async compileVideo(audioFile, mediaAssets, title, duration) {
         try {
-            console.log('Compiling final video...');
-            
             const outputFileName = `${title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.mp4`;
             const outputPath = path.join(this.outputDir, outputFileName);
-            
             const durationSeconds = duration * 60;
             
             if (mediaAssets.videos.length > 0) {
@@ -489,10 +306,9 @@ class CompleteVideoGenerator {
             } else if (mediaAssets.images.length > 0) {
                 await this.createVideoFromImages(audioFile, mediaAssets.images, outputPath, durationSeconds);
             } else {
-                await this.createSimpleVideoWithAudio(audioFile, outputPath, durationSeconds);
+                await this.createSimpleVideo(audioFile, outputPath, durationSeconds);
             }
             
-            console.log('Video compilation completed');
             return outputPath;
             
         } catch (error) {
@@ -504,113 +320,68 @@ class CompleteVideoGenerator {
     }
 
     async createVideoWithClips(audioFile, videos, outputPath, duration) {
-        const videoList = videos.slice(0, Math.min(6, videos.length));
+        const videoList = videos.slice(0, 4);
+        const segmentDuration = duration / videoList.length;
         
-        if (videoList.length === 0) {
-            throw new Error('No video clips available for compilation');
+        let filterComplex = '';
+        let inputs = `-i "${audioFile}" `;
+        
+        for (let i = 0; i < videoList.length; i++) {
+            inputs += `-i "${videoList[i]}" `;
+            filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,trim=duration=${segmentDuration}[v${i}];`;
         }
         
-        console.log(`Creating video with ${videoList.length} clips for ${duration} seconds`);
+        filterComplex += videoList.map((_, i) => `[v${i}]`).join('') + `concat=n=${videoList.length}:v=1:a=0[outv]`;
         
-        try {
-            let filterComplex = '';
-            let inputs = `-i "${audioFile}" `;
-            
-            for (let i = 0; i < videoList.length; i++) {
-                inputs += `-i "${videoList[i]}" `;
-            }
-            
-            const segmentDuration = Math.max(4, duration / videoList.length);
-            
-            for (let i = 0; i < videoList.length; i++) {
-                filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,setpts=PTS-STARTPTS,trim=duration=${segmentDuration},setpts=PTS-STARTPTS[v${i}];`;
-            }
-            
-            filterComplex += videoList.map((_, i) => `[v${i}]`).join('') + `concat=n=${videoList.length}:v=1:a=0[outv]`;
-            
-            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0" -t ${duration} "${outputPath}"`;
-            
-            console.log('Executing FFmpeg video compilation...');
-            await execAsync(command, { timeout: 300000 });
-            console.log('Video compilation with clips completed successfully');
-            
-        } catch (error) {
-            console.error('Video compilation with clips failed:', error);
-            await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
-        }
+        const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -af "volume=2.0" -t ${duration} "${outputPath}"`;
+        
+        await execAsync(command, { timeout: 300000 });
     }
 
     async createVideoFromImages(audioFile, images, outputPath, duration) {
-        try {
-            console.log(`Creating slideshow video with ${images.length} images`);
-            
-            const imageDuration = Math.max(3, duration / images.length);
-            let filterComplex = '';
-            let inputs = `-i "${audioFile}" `;
-            
-            for (let i = 0; i < images.length; i++) {
-                inputs += `-loop 1 -t ${imageDuration} -i "${images[i]}" `;
-            }
-            
-            for (let i = 0; i < images.length; i++) {
-                filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black,fade=t=in:st=0:d=0.5,fade=t=out:st=${imageDuration - 0.5}:d=0.5[v${i}];`;
-            }
-            
-            filterComplex += images.map((_, i) => `[v${i}]`).join('') + `concat=n=${images.length}:v=1:a=0[outv]`;
-            
-            const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0" -t ${duration} "${outputPath}"`;
-            
-            await execAsync(command, { timeout: 300000 });
-            console.log('Image slideshow video created successfully');
-            
-        } catch (error) {
-            console.error('Image slideshow creation failed:', error);
-            await this.createSimpleVideoWithAudio(audioFile, outputPath, duration);
+        const imageDuration = duration / images.length;
+        let filterComplex = '';
+        let inputs = `-i "${audioFile}" `;
+        
+        for (let i = 0; i < images.length; i++) {
+            inputs += `-loop 1 -t ${imageDuration} -i "${images[i]}" `;
+            filterComplex += `[${i + 1}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black[v${i}];`;
         }
+        
+        filterComplex += images.map((_, i) => `[v${i}]`).join('') + `concat=n=${images.length}:v=1:a=0[outv]`;
+        
+        const command = `ffmpeg -y ${inputs} -filter_complex "${filterComplex}" -map "[outv]" -map 0:a -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -af "volume=2.0" -t ${duration} "${outputPath}"`;
+        
+        await execAsync(command, { timeout: 300000 });
     }
 
-    async createSimpleVideoWithAudio(audioFile, outputPath, duration) {
-        try {
-            console.log('Creating simple video with gradient background');
-            
-            const command = `ffmpeg -y -i "${audioFile}" -f lavfi -i "color=gradient=blue:navy:1920:1080:d=${duration}" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -ar 44100 -af "volume=2.0" -t ${duration} -shortest "${outputPath}"`;
-            
-            await execAsync(command, { timeout: 180000 });
-            console.log('Simple video with audio created successfully');
-            
-        } catch (error) {
-            console.error('Simple video creation failed:', error);
-            throw error;
-        }
+    async createSimpleVideo(audioFile, outputPath, duration) {
+        const command = `ffmpeg -y -i "${audioFile}" -f lavfi -i "color=blue:1920:1080:d=${duration}" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k -af "volume=2.0" -t ${duration} -shortest "${outputPath}"`;
+        await execAsync(command, { timeout: 180000 });
     }
 
     async getFileSize(filePath) {
         try {
             const stats = await fs.stat(filePath);
             return Math.round(stats.size / 1024 / 1024 * 100) / 100;
-        } catch (error) {
+        } catch {
             return 0;
         }
     }
 }
 
-// Modern Encryption System
+// Encryption System
 class SecureVault {
     static encrypt(text) {
-        try {
-            const algorithm = 'aes-256-cbc';
-            const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
-            const iv = crypto.randomBytes(16);
-            const cipher = crypto.createCipheriv(algorithm, key, iv);
-            
-            let encrypted = cipher.update(text, 'utf8', 'hex');
-            encrypted += cipher.final('hex');
-            
-            return iv.toString('hex') + ':' + encrypted;
-        } catch (error) {
-            console.error('Encryption failed:', error);
-            throw new Error('Failed to encrypt data');
-        }
+        const algorithm = 'aes-256-cbc';
+        const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv(algorithm, key, iv);
+        
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        
+        return iv.toString('hex') + ':' + encrypted;
     }
     
     static decrypt(encryptedData) {
@@ -619,10 +390,7 @@ class SecureVault {
             const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
             const parts = encryptedData.split(':');
             
-            if (parts.length !== 2) {
-                console.error('Invalid encrypted data format');
-                return null;
-            }
+            if (parts.length !== 2) return null;
             
             const iv = Buffer.from(parts[0], 'hex');
             const encrypted = parts[1];
@@ -653,44 +421,18 @@ class AuthenticationManager {
 
     async authenticateUser(email, password) {
         try {
-            console.log(`Login attempt for: ${email}`);
-            
-            if (email === this.adminEmail) {
-                if (password === this.adminPasswordPlain) {
-                    console.log('Admin authenticated via environment variable');
-                    return {
-                        email: this.adminEmail,
-                        role: 'admin',
-                        plan: 'enterprise',
-                        authenticated: true
-                    };
-                }
-                
-                if (this.db) {
-                    const adminUser = await this.db.collection('users').findOne({ 
-                        email: this.adminEmail,
-                        role: 'admin'
-                    });
-                    
-                    if (adminUser && adminUser.password) {
-                        const validPassword = await bcrypt.compare(password, adminUser.password);
-                        if (validPassword) {
-                            console.log('Admin authenticated via database');
-                            return {
-                                email: adminUser.email,
-                                role: adminUser.role,
-                                plan: adminUser.plan || 'enterprise',
-                                authenticated: true
-                            };
-                        }
-                    }
-                }
+            if (email === this.adminEmail && password === this.adminPasswordPlain) {
+                return {
+                    email: this.adminEmail,
+                    role: 'admin',
+                    plan: 'enterprise',
+                    authenticated: true
+                };
             }
             
             if (this.db) {
                 const user = await this.db.collection('users').findOne({ email });
                 if (user && await bcrypt.compare(password, user.password)) {
-                    console.log(`User authenticated: ${email}`);
                     return {
                         email: user.email,
                         role: user.role || 'user',
@@ -701,32 +443,24 @@ class AuthenticationManager {
             }
             
             throw new Error('Invalid credentials');
-            
         } catch (error) {
-            console.error('Authentication error:', error);
             throw error;
         }
     }
 
     async initializeAdminUser() {
-        if (!this.db) {
-            console.log('Database not available, skipping admin user creation');
-            return;
-        }
+        if (!this.db) return;
 
         try {
-            const existingUser = await this.db.collection('users').findOne({ 
-                email: this.adminEmail
-            });
-
+            const existingUser = await this.db.collection('users').findOne({ email: this.adminEmail });
             if (existingUser) {
                 console.log('Admin user already exists');
-                return existingUser;
+                return;
             }
 
             const hashedPassword = await bcrypt.hash(this.adminPasswordPlain, 12);
             
-            const adminUser = {
+            await this.db.collection('users').insertOne({
                 email: this.adminEmail,
                 password: hashedPassword,
                 role: 'admin',
@@ -734,30 +468,344 @@ class AuthenticationManager {
                 videosUsed: 0,
                 videosLimit: 999999,
                 isActive: true,
-                createdAt: new Date(),
-                compliance: 'terms_compliant'
-            };
-
-            const result = await this.db.collection('users').insertOne(adminUser);
-            console.log('Admin user created successfully with ID:', result.insertedId);
+                createdAt: new Date()
+            });
             
-            return { ...adminUser, _id: result.insertedId };
-            
+            console.log('Admin user created successfully');
         } catch (error) {
             if (error.code === 11000) {
-                console.log('Admin user already exists (duplicate key)');
-                return null;
+                console.log('Admin user already exists');
+            } else {
+                console.error('Failed to initialize admin user:', error);
             }
-            console.error('Failed to initialize admin user:', error);
-            return null;
         }
     }
 }
 
-// API key management
+// API Key Management
 async function getDecryptedApiKeys() {
     if (!db) return {};
     
     try {
         const apiKeys = await db.collection('apikeys').find({ isActive: true }).toArray();
         const decryptedKeys = {};
+        
+        for (const key of apiKeys) {
+            try {
+                const decryptedKey = SecureVault.decrypt(key.encryptedKey);
+                if (decryptedKey) {
+                    decryptedKeys[key.service] = decryptedKey;
+                }
+            } catch (error) {
+                console.error(`Error decrypting ${key.service} key`);
+            }
+        }
+        
+        console.log(`Successfully decrypted ${Object.keys(decryptedKeys).length} API keys`);
+        return decryptedKeys;
+        
+    } catch (error) {
+        console.error('Failed to get API keys:', error);
+        return {};
+    }
+}
+
+// Middleware
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Rate limiting
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: { error: 'Too many authentication attempts' }
+});
+
+app.use('/api/auth', authLimiter);
+
+// Database connection
+async function connectToDatabase() {
+    try {
+        if (!MONGODB_URI) {
+            throw new Error('MONGODB_URI not set');
+        }
+
+        const client = new MongoClient(MONGODB_URI);
+        await client.connect();
+        db = client.db('ai_hollywood_studio');
+        
+        console.log('MongoDB connected');
+        
+        authManager = new AuthenticationManager();
+        authManager.setDatabase(db);
+        
+        await db.collection('users').createIndex({ email: 1 }, { unique: true });
+        await db.collection('apikeys').createIndex({ service: 1 }, { unique: true });
+        await authManager.initializeAdminUser();
+        
+    } catch (error) {
+        console.error('Database connection failed:', error);
+        throw error;
+    }
+}
+
+// Middleware functions
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Access token required' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ error: 'Invalid token' });
+        req.user = user;
+        next();
+    });
+}
+
+function requireAdmin(req, res, next) {
+    if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+    next();
+}
+
+// Routes
+app.get('/api/health', async (req, res) => {
+    try {
+        let ffmpegStatus = 'not_available';
+        try {
+            await execAsync('ffmpeg -version');
+            ffmpegStatus = 'available';
+        } catch {}
+
+        res.json({
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            database: db ? 'connected' : 'disconnected',
+            adminEmail: ADMIN_EMAIL,
+            ffmpeg: ffmpegStatus
+        });
+    } catch (error) {
+        res.status(500).json({ status: 'unhealthy', error: error.message });
+    }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { email, password, plan = 'free' } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password required' });
+        }
+
+        const existingUser = await db.collection('users').findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: 'User already exists' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 12);
+        
+        const userData = {
+            email,
+            password: hashedPassword,
+            role: 'user',
+            plan,
+            videosUsed: 0,
+            videosLimit: plan === 'free' ? 3 : 50,
+            isActive: true,
+            createdAt: new Date()
+        };
+
+        const result = await db.collection('users').insertOne(userData);
+        
+        const token = jwt.sign({ email, role: userData.role, plan }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.status(201).json({
+            success: true,
+            token,
+            user: { email, role: userData.role, plan }
+        });
+
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ error: 'Registration failed' });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password required' });
+        }
+
+        const user = await authManager.authenticateUser(email, password);
+        
+        const token = jwt.sign({ email: user.email, role: user.role, plan: user.plan }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.json({
+            success: true,
+            token,
+            user: { email: user.email, role: user.role, plan: user.plan }
+        });
+
+    } catch (error) {
+        res.status(401).json({ error: 'Invalid credentials' });
+    }
+});
+
+app.post('/api/videos/generate', authenticateToken, async (req, res) => {
+    try {
+        const { title, category, duration, tone, voiceStyle, visualStyle } = req.body;
+
+        if (!title || !category || !duration) {
+            return res.status(400).json({ error: 'Title, category, and duration required' });
+        }
+
+        const apiKeys = await getDecryptedApiKeys();
+        
+        if (Object.keys(apiKeys).length === 0) {
+            return res.status(500).json({ error: 'API keys not configured' });
+        }
+
+        const generator = new CompleteVideoGenerator(apiKeys);
+        
+        const result = await generator.generateVideo({
+            title,
+            category,
+            duration: parseInt(duration),
+            tone: tone || 'professional',
+            voiceStyle: voiceStyle || 'professional-male',
+            visualStyle: visualStyle || 'corporate'
+        });
+
+        res.json({
+            success: true,
+            message: 'Video generated successfully',
+            video: result,
+            downloadUrl: result.downloadUrl
+        });
+
+    } catch (error) {
+        console.error('Video generation error:', error);
+        res.status(500).json({ error: 'Video generation failed', details: error.message });
+    }
+});
+
+app.get('/api/admin/apikeys', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const apiKeys = await db.collection('apikeys').find({ isActive: true }).toArray();
+        
+        const sanitizedKeys = apiKeys.map(key => ({
+            _id: key._id,
+            service: key.service,
+            createdAt: key.createdAt,
+            isActive: key.isActive,
+            masked: `${key.service}_${'*'.repeat(20)}`
+        }));
+
+        res.json({ success: true, apiKeys: sanitizedKeys });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch API keys' });
+    }
+});
+
+app.post('/api/admin/apikeys', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { service, apiKey } = req.body;
+
+        if (!service || !apiKey) {
+            return res.status(400).json({ error: 'Service and API key required' });
+        }
+
+        const encryptedKey = SecureVault.encrypt(apiKey);
+
+        await db.collection('apikeys').updateOne(
+            { service },
+            {
+                $set: {
+                    service,
+                    encryptedKey,
+                    isActive: true,
+                    updatedAt: new Date()
+                },
+                $setOnInsert: { createdAt: new Date() }
+            },
+            { upsert: true }
+        );
+
+        res.json({ success: true, message: `API key for ${service} updated` });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to save API key' });
+    }
+});
+
+app.delete('/api/admin/apikeys/:service', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { service } = req.params;
+
+        await db.collection('apikeys').updateOne(
+            { service },
+            { $set: { isActive: false, deactivatedAt: new Date() } }
+        );
+
+        res.json({ success: true, message: `API key for ${service} deactivated` });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete API key' });
+    }
+});
+
+app.get('/download/:filename', (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const filePath = path.join(__dirname, 'generated_videos', filename);
+        
+        if (!filename || filename.includes('..')) {
+            return res.status(400).json({ error: 'Invalid filename' });
+        }
+        
+        if (!fsSync.existsSync(filePath)) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        
+        const ext = path.extname(filename).toLowerCase();
+        const contentType = ext === '.mp4' ? 'video/mp4' : 'audio/mpeg';
+        
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        
+        const fileStream = fsSync.createReadStream(filePath);
+        fileStream.pipe(res);
+        
+    } catch (error) {
+        res.status(500).json({ error: 'Download failed' });
+    }
+});
+
+app.use('*', (req, res) => {
+    res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Start server
+async function startServer() {
+    try {
+        await connectToDatabase();
+        
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+            console.log(`Admin: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+        });
+        
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
